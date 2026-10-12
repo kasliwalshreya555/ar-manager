@@ -1,0 +1,3 @@
+import {loadArData} from "@/lib/ar/load";import {InvoiceForm} from "@/components/forms";import {asOfDate} from "@/lib/asof";
+export const dynamic="force-dynamic";
+export default async function NewInvoice({searchParams}:{searchParams:Promise<{asof?:string}>}){const asof=asOfDate((await searchParams).asof);try{const d=await loadArData();return <><h1>Create invoice</h1><p className="muted">GST, due date and credit-limit preview are calculated before saving.</p><InvoiceForm asof={asof} customers={d.customers}/></>}catch(e){return <div className="card">{e instanceof Error?e.message:"Could not load invoice form"}</div>}}

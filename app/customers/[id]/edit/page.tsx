@@ -1,0 +1,3 @@
+import {notFound} from "next/navigation";import {loadArData} from "@/lib/ar/load";import {CustomerForm} from "@/components/forms";import {asOfDate} from "@/lib/asof";
+export const dynamic="force-dynamic";
+export default async function EditCustomer({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{asof?:string}>}){const {id}=await params,asof=asOfDate((await searchParams).asof);try{const d=await loadArData(),c=d.customers.find(x=>x.id===Number(id));if(!c)return notFound();return <><h1>Edit customer</h1><CustomerForm asof={asof} customer={c}/></>}catch(e){return <div className="card">{e instanceof Error?e.message:"Could not load customer"}</div>}}

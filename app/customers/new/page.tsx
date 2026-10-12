@@ -1,0 +1,2 @@
+import {CustomerForm} from "@/components/forms";import {asOfDate} from "@/lib/asof";
+export default async function NewCustomer({searchParams}:{searchParams:Promise<{asof?:string}>}){const asof=asOfDate((await searchParams).asof);return <><h1>Add customer</h1><p className="muted">Customer details and credit terms.</p><CustomerForm asof={asof}/></>}

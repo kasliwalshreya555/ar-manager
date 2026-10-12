@@ -1,0 +1,3 @@
+import {loadArData} from "@/lib/ar/load";import {ReceiptForm} from "@/components/forms";import {asOfDate} from "@/lib/asof";
+export const dynamic="force-dynamic";
+export default async function NewReceipt({searchParams}:{searchParams:Promise<{asof?:string}>}){const asof=asOfDate((await searchParams).asof);try{const d=await loadArData();return <><h1>Record payment</h1><p className="muted">Settlement = bank amount + TDS. Allocation suggestion is oldest-first.</p><ReceiptForm asof={asof} customers={d.customers}/></>}catch(e){return <div className="card">{e instanceof Error?e.message:"Could not load receipt form"}</div>}}
