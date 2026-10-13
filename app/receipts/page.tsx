@@ -1,3 +1,55 @@
-import Link from "next/link";import {loadArData} from "@/lib/ar/load";import {receiptPositions} from "@/lib/ar/positions";import {money,dateLabel} from "@/lib/format";import {asOfDate} from "@/lib/asof";
-export const dynamic="force-dynamic";
-export default async function Receipts({searchParams}:{searchParams:Promise<{asof?:string}>}){const asof=asOfDate((await searchParams).asof);try{const d=await loadArData(),rows=receiptPositions(d,asof);return <><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}><div><h1>Receipts</h1><p className="muted">Settlement includes bank amount plus TDS</p></div><Link className="button primary" href={`/receipts/new?asof=${asof}`}>＋ Record payment</Link></div><section className="card" style={{padding:0,overflowX:"auto"}}><table><thead><tr><th>Receipt no.</th><th>Customer</th><th>Date</th><th>Mode</th><th>Reference</th><th className="num">Bank amount</th><th className="num">TDS</th><th className="num">Settlement</th><th className="num">Allocated</th><th className="num">Unapplied</th></tr></thead><tbody>{rows.map(p=><tr key={p.receipt.id}><td>{p.receipt.receiptNo}</td><td>{d.customers.find(c=>c.id===p.receipt.customerId)?.name}</td><td>{dateLabel(p.receipt.receiptDate)}</td><td>{p.receipt.mode}</td><td>{p.receipt.reference}</td><td className="num">{money(p.receipt.bankAmount)}</td><td className="num">{money(p.receipt.tdsAmount)}</td><td className="num">{money(p.settlement)}</td><td className="num">{money(p.allocated)}</td><td className="num">{money(p.unapplied)}</td></tr>)}</tbody></table></section></>}catch(e){return <div className="card">{e instanceof Error?e.message:"Failed to load receipts"}</div>}}
+
+import { loadArData } from "@/lib/ar/load";
+import { invoicePositions } from "@/lib/ar/positions";
+import { ReceiptForm } from "@/components/forms";
+import { asOfDate } from "@/lib/asof";
+
+export const dynamic = "force-dynamic";
+
+export default async function NewReceipt({
+  searchParams,
+}: {
+  searchParams: Promise<{ asof?: string }>;
+}) {
+  const asof = asOfDate((await searchParams).asof);
+
+  try {
+    const data = await loadArData();
+    const positions = invoicePositions(data, asof);
+
+    // Pass invoice balances as of the selected date to the receipt form.
+    const invoices = data.invoices.map((invoice) => {
+      const position = positions.find(
+        (p) => p.invoice.id === invoice.id,
+      );
+
+      return {
+        ...invoice,
+        total: position?.outstanding ?? 0,
+      };
+    });
+
+    return (
+      <>
+        <h1>Record payment</h1>
+        <p className="muted">
+          Settlement = bank amount + TDS. Suggested allocations follow
+          oldest due date first. Any remaining amount stays as unapplied
+          customer credit.
+        </p>
+
+        <ReceiptForm
+          asof={asof}
+          customers={data.customers}
+          invoices={invoices}
+        />
+      </>
+    );
+  } catch (e) {
+    return (
+      <div className="card">
+        {e instanceof Error ? e.message : "Could not load receipt form"}
+      </div>
+    );
+  }
+}
