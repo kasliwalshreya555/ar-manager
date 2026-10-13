@@ -14,14 +14,16 @@ export default async function InvoicePage({params,searchParams}:{params:Promise<
       <div className="progress"><div style={{width:`${Math.min(100,Math.max(0,pct))}%`}}/></div>
       <p className="muted" style={{marginTop:8}}>{money(paid)} paid of {money(i.total)} ({pct}%)</p>
       {outstanding>0&&!i.isCancelled?<div className="no-print" style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:14}}><Link className="button primary" href={`/invoices/${i.id}/email?asof=${asof}`}>{overdue?"Send overdue reminder":paid>0?"Send balance due reminder":"Send email"}</Link><Link className="button" href={`/receipts/new?asof=${asof}`}>Record payment</Link></div>:null}
-      <div className="card" style={{marginTop:15}}>
-        <p style={{marginTop:0}}><strong>Description:</strong> {i.description}</p>
-        <p>Status: <span className={`tag ${i.isCancelled?"":p?.status==="Paid"?"green":p?.status==="Overdue"?"red":"amber"}`}>{i.isCancelled?"Cancelled":p?.status}</span> {p?.isPartPaid?<span className="tag amber">Part-paid</span>:null} {i.isDisputed?<span className="tag red">Disputed</span>:null}</p>
-        <div className="summary-cols" style={{margin:"18px 0"}}>
-          <div><h3>Tax breakdown</h3>{([["Taxable value",i.taxableValue],["CGST",i.cgst],["SGST",i.sgst],["IGST",i.igst]] as const).map(([k,v])=><div className="kv" key={k}><span>{k}</span><span>{money(v)}</span></div>)}<div className="kv total"><span>Invoice total</span><span>{money(i.total)}</span></div></div>
-          <div><h3>Payments</h3>{([["Received",p?.received??0],["Credited",p?.credited??0]] as const).map(([k,v])=><div className="kv" key={k}><span>{k}</span><span>{money(v)}</span></div>)}<div className="kv total"><span>Balance due</span><span>{money(outstanding)}</span></div></div>
+      <div className="card invoice-card" style={{marginTop:15}}>
+        <div className="invoice-meta">
+          <div><div className="detail-label">Description</div><div className="invoice-meta-value">{i.description}</div></div>
+          <div><div className="detail-label">Status</div><div className="invoice-meta-value"><span className={`tag ${i.isCancelled?"":p?.status==="Paid"?"green":p?.status==="Overdue"?"red":"amber"}`}>{i.isCancelled?"Cancelled":p?.status}</span> {p?.isPartPaid?<span className="tag amber">Part-paid</span>:null} {i.isDisputed?<span className="tag red">Disputed</span>:null}</div></div>
         </div>
-        <InvoiceActions id={i.id} disputed={i.isDisputed} cancelled={i.isCancelled} asof={asof}/></div>
+        <div className="summary-cols invoice-panels">
+          <div className="summary-panel tax"><h3>Tax breakdown</h3>{([["Taxable value",i.taxableValue],["CGST",i.cgst],["SGST",i.sgst],["IGST",i.igst]] as const).map(([k,v])=><div className="kv" key={k}><span>{k}</span><span>{money(v)}</span></div>)}<div className="kv total"><span>Invoice total</span><span>{money(i.total)}</span></div></div>
+          <div className="summary-panel pay"><h3>Payments</h3>{([["Received",p?.received??0],["Credited",p?.credited??0]] as const).map(([k,v])=><div className="kv" key={k}><span>{k}</span><span>{money(v)}</span></div>)}<div className={outstanding>0?"kv total due":"kv total settled"}><span>Balance due</span><span>{money(outstanding)}</span></div></div>
+        </div>
+        <div className="action-bar no-print"><span className="detail-label">Actions</span><InvoiceActions id={i.id} disputed={i.isDisputed} cancelled={i.isCancelled} asof={asof}/></div></div>
       <section className="card" style={{marginTop:15}}><h2>Allocations</h2>{allocations.length?allocations.map(a=><p key={a.id}>{dateLabel(a.allocationDate)} · {money(a.amount)} <span className="muted">receipt #{a.receiptId}</span></p>):<p className="muted">No allocations</p>}</section></>;
   }catch(e){return <div className="card">{e instanceof Error?e.message:"Could not load invoice"}</div>}
 }

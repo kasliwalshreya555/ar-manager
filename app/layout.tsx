@@ -3,6 +3,7 @@ import { SidebarNav } from "@/components/sidebar-nav";
 import { Suspense } from "react";
 import "./globals.css";
 import { AsOfDatePicker } from "@/components/asof-date-picker";
+import { GlobalSearch } from "@/components/global-search";
 
 export const metadata: Metadata = {
   title: "Brightwater Receivables Hub",
@@ -18,7 +19,8 @@ export default function RootLayout({
     ["/invoices", "Invoices"],
     ["/receipts", "Receipts"],
     ["/follow-ups", "Follow-ups"],
-    ["/statement", "Statements & reports"],
+    ["/ageing", "Ageing report"],
+    ["/statement", "Statements"],
   ];
 
   return (
@@ -43,6 +45,10 @@ export default function RootLayout({
               Receivables Hub · Baner, Pune 411045
             </div>
           </div>
+
+          <Suspense fallback={<div className="global-search" />}>
+            <GlobalSearch />
+          </Suspense>
 
           <Suspense
             fallback={

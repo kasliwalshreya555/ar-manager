@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { loadArData } from "@/lib/ar/load";
-import { customerPositions } from "@/lib/ar/positions";
 import { statement } from "@/lib/ar/statement";
 import { balance, money, dateLabel } from "@/lib/format";
 import { asOfDate } from "@/lib/asof";
@@ -28,7 +27,6 @@ export default async function Statements({
 
   try {
     const data = await loadArData();
-    const positions = customerPositions(data, asof);
 
     const selectedCustomerId = Number(q.customer);
     const selectedCustomer = data.customers.find(
@@ -86,9 +84,11 @@ export default async function Statements({
     return (
       <>
         <div className="no-print">
-          <h1>Statements &amp; reports</h1>
-          <p className="muted">
-            Ageing summary as at {dateLabel(asof)}
+          <h1 style={{ marginBottom: 4 }}>Customer statement</h1>
+          <p className="muted" style={{ marginTop: 0 }}>
+            Choose a customer and period to see every invoice, credit note and
+            receipt with a running balance. For balances of all customers, see
+            the <Link href={`/ageing?asof=${asof}`}>Ageing report</Link>.
           </p>
 
           <form
@@ -146,9 +146,6 @@ export default async function Statements({
               Open statement
             </button>
 
-            <a className="button" href={`/api/ageing.csv?asof=${asof}`}>
-              Ageing CSV
-            </a>
           </form>
         </div>
 
@@ -157,46 +154,6 @@ export default async function Statements({
             <p>Choose a valid statement period. The From date must not be after the To date.</p>
           </div>
         ) : null}
-
-        <section className="card" style={{ padding: 0, overflowX: "auto" }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th className="num">Not due</th>
-                <th className="num">1–30</th>
-                <th className="num">31–60</th>
-                <th className="num">61–90</th>
-                <th className="num">91–180</th>
-                <th className="num">Over 180</th>
-                <th className="num">Unapplied credit</th>
-                <th className="num">Net balance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {positions.map((position) => (
-                <tr key={position.customer.id}>
-                  <td>
-                    <Link
-                      href={`/statement?asof=${asof}&customer=${position.customer.id}&from=${from}&to=${to}`}
-                    >
-                      {position.customer.code} · {position.customer.name}
-                    </Link>
-                  </td>
-                  {(
-                    ["Not due", "1-30", "31-60", "61-90", "91-180", "Over 180"] as const
-                  ).map((bucket) => (
-                    <td className="num" key={bucket}>
-                      {money(position.buckets[bucket])}
-                    </td>
-                  ))}
-                  <td className="num">{money(position.unapplied)}</td>
-                  <td className="num">{balance(position.netBalance)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
 
         {selectedCustomer && result ? (
           <section className="card" style={{ marginTop: 16 }}>
@@ -316,11 +273,13 @@ export default async function Statements({
               and TDS are displayed as separate credits.
             </p>
           </section>
-        ) : q.customer ? (
+        ) : (
           <div className="card" style={{ marginTop: 16 }}>
-            Select a valid customer and statement period to view transactions.
+            {q.customer
+              ? "Select a valid customer and statement period to view transactions."
+              : "Select a customer and period above, then click Open statement."}
           </div>
-        ) : null}
+        )}
 
         <div className="no-print muted" style={{ marginTop: 15 }}>
           Use your browser&apos;s Print command to print this report.

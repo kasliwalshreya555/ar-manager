@@ -727,7 +727,7 @@ export function InvoiceActions({
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
       {!cancelled ? (
         <>
-          <button
+          <button className="action-btn warn" type="button"
             onClick={async () => {
               const r = await setInvoiceDisputed(id, !disputed);
               if (!r.ok) setError(r.message);
@@ -737,7 +737,7 @@ export function InvoiceActions({
             {disputed ? "Clear disputed" : "Mark disputed"}
           </button>
 
-          <button
+          <button className="action-btn primary" type="button"
             onClick={() => {
               const taxable = prompt("Credit note taxable value (₹)");
               if (!taxable) return;
@@ -760,7 +760,7 @@ export function InvoiceActions({
             Raise credit note
           </button>
 
-          <button
+          <button className="action-btn danger" type="button"
             onClick={async () => {
               if (!confirm("Cancel this invoice?")) return;
               const r = await cancelInvoice(id);
