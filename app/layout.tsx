@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { SidebarNav } from "@/components/sidebar-nav";
 import { Suspense } from "react";
 import "./globals.css";
 import { AsOfDatePicker } from "@/components/asof-date-picker";
@@ -12,11 +12,12 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const nav = [
+  const nav: [string, string][] = [
     ["/", "Dashboard"],
     ["/customers", "Customers"],
     ["/invoices", "Invoices"],
     ["/receipts", "Receipts"],
+    ["/follow-ups", "Follow-ups"],
     ["/statement", "Statements & reports"],
   ];
 
@@ -24,9 +25,8 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <header
+          className="app-header"
           style={{
-            background: "white",
-            borderBottom: "1px solid #e5e7eb",
             padding: "14px 24px",
             display: "flex",
             justifyContent: "space-between",
@@ -36,10 +36,10 @@ export default function RootLayout({
           }}
         >
           <div>
-            <strong style={{ fontSize: 17, color: "#142b45" }}>
+            <strong style={{ fontSize: 17, color: "white" }}>
               Brightwater Advisory
             </strong>
-            <div className="muted" style={{ fontSize: 12 }}>
+            <div style={{ fontSize: 12, color: "#b8c8d9" }}>
               Receivables Hub · Baner, Pune 411045
             </div>
           </div>
@@ -61,29 +61,16 @@ export default function RootLayout({
             style={{
               width: 205,
               flexShrink: 0,
-              background: "#142b45",
+              background: "#24507f",
               padding: 16,
               display: "flex",
               flexDirection: "column",
               gap: 7,
             }}
           >
-            {nav.map(([href, label]) => (
-              <Link
-                key={href}
-                href={href}
-                style={{
-                  color: "white",
-                  padding: "11px 12px",
-                  borderRadius: 8,
-                  background: "transparent",
-                }}
-              >
-                {label}
-              </Link>
-            ))}
+            <SidebarNav items={nav} />
 
-            <div style={{ color: "#b8c8d9", fontSize: 11, marginTop: 20 }}>
+            <div style={{ color: "#c9d8e8", fontSize: 11, marginTop: 20 }}>
               INR · India
               <br />
               As-at reporting

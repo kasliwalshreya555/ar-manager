@@ -778,14 +778,124 @@ export function InvoiceActions({
   );
 }
 
+export function EmailReminderForm({
+  asof,
+  customerId,
+  invoiceId,
+  to: initialTo,
+  subject: initialSubject,
+  body: initialBody,
+  backHref,
+}: {
+  asof: string;
+  customerId: number;
+  invoiceId: number;
+  to: string;
+  subject: string;
+  body: string;
+  backHref: string;
+}) {
+  const [to, setTo] = useState(initialTo);
+  const [subject, setSubject] = useState(initialSubject);
+  const [body, setBody] = useState(initialBody);
+  const [logNote, setLogNote] = useState(true);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState("");
+  const router = useRouter();
+
+  async function send() {
+    setError("");
+    setDone("");
+    window.location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    if (!logNote) {
+      setDone("Opened in your email app.");
+      return;
+    }
+
+    const f = new FormData();
+    f.set("customer_id", String(customerId));
+    f.set("invoice_id", String(invoiceId));
+    f.set("note_date", asof);
+    f.set("note_type", "Email");
+    f.set("body", `Reminder emailed to ${to}: ${subject}`);
+    const r = await createNote(f);
+    if (!r.ok) setError(r.message);
+    else {
+      setDone("Opened in your email app and logged as an Email note.");
+      router.refresh();
+    }
+  }
+
+  return (
+    <form
+      className="card"
+      style={{ display: "grid", gap: 14, maxWidth: 820 }}
+      onSubmit={(e) => {
+        e.preventDefault();
+        send();
+      }}
+    >
+      <label>
+        To
+        <input type="email" required value={to} onChange={(e) => setTo(e.target.value)} />
+      </label>
+
+      <label>
+        Subject
+        <input required value={subject} onChange={(e) => setSubject(e.target.value)} />
+      </label>
+
+      <label>
+        Message
+        <textarea
+          required
+          rows={18}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          style={{ fontFamily: "inherit", lineHeight: 1.6, whiteSpace: "pre-wrap" }}
+        />
+      </label>
+
+      <label style={{ flexDirection: "row", alignItems: "center", fontWeight: 400 }}>
+        <input type="checkbox" checked={logNote} onChange={(e) => setLogNote(e.target.checked)} />
+        Log this reminder as an Email note on the customer
+      </label>
+
+      {error ? <Result message={error} /> : null}
+      {done ? <p className="tag green">{done}</p> : null}
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button className="primary" type="submit">
+          Open in email app
+        </button>
+        <button
+          type="button"
+          onClick={async () => {
+            await navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`);
+            setDone("Subject and message copied.");
+          }}
+        >
+          Copy message
+        </button>
+        <a className="button" href={backHref}>
+          Cancel
+        </a>
+      </div>
+    </form>
+  );
+}
+
 export function NoteForm({
   asof,
   customerId,
   invoiceId,
+  redirectTo,
 }: {
   asof: string;
   customerId: number;
   invoiceId?: number;
+  redirectTo?: string;
 }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -802,6 +912,7 @@ export function NoteForm({
       return;
     }
 
+    if (redirectTo) router.push(redirectTo);
     router.refresh();
   }
 

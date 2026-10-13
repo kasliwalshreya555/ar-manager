@@ -20,13 +20,30 @@ const customerSchema = z.object({
   state: z.string().trim().min(1),
   contact_person: z.string().trim().min(1),
   email: z.email(),
-  phone: z.string().optional(),
-  gstin: z.string().optional(),
+  // Blank optional fields are stored as NULL; the database rejects empty strings.
+  phone: z.string().trim().optional().transform((v) => v || null),
+  gstin: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .optional()
+    .transform((v) => v || null)
+    .refine((v) => v === null || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(v), {
+      message: "GSTIN must be 15 characters, e.g. 27ABCDE1234F1Z5, or left blank.",
+    }),
   credit_days: z.coerce.number().int().min(0),
   credit_limit: z.coerce.number().min(0),
   tds_rate_pct: z.coerce.number().min(0).max(100),
-  is_active: z.coerce.boolean().default(true),
+  // The form posts "true"/"false"; z.coerce.boolean would turn "false" into true.
+  is_active: z.enum(["true", "false"]).default("true").transform((v) => v === "true"),
 });
+
+// The customer code is fixed once created (its input is disabled on edit, so it is not posted).
+const customerUpdateSchema = customerSchema.omit({ code: true });
+
+function zodMessage(e: unknown) {
+  return e instanceof z.ZodError ? new Error(e.issues.map((i) => i.message).join(" ")) : e;
+}
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -56,19 +73,19 @@ export async function saveCustomer(form: FormData) {
     refreshAr();
     return { ok: true as const };
   } catch (e) {
-    return err(e);
+    return err(zodMessage(e));
   }
 }
 
 export async function updateCustomer(id: number, form: FormData) {
   try {
-    const v = customerSchema.parse(Object.fromEntries(form));
+    const v = customerUpdateSchema.parse(Object.fromEntries(form));
     const { error } = await requireDb().from("customers").update(v).eq("id", id);
     if (error) throw new Error(error.message);
     refreshAr(id);
     return { ok: true as const };
   } catch (e) {
-    return err(e);
+    return err(zodMessage(e));
   }
 }
 

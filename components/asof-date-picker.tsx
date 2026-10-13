@@ -31,7 +31,7 @@ export function AsOfDatePicker() {
     <form
       onSubmit={applyDate}
       className="no-print"
-      style={{ display: "flex", alignItems: "center", gap: 8 }}
+      style={{ display: "flex", alignItems: "flex-end", gap: 8 }}
     >
       <label>
         AS-AT DATE
