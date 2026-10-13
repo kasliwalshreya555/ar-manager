@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   allocateReceiptCredit,
@@ -167,7 +167,7 @@ export function CustomerActions({
 
   return (
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-      <button
+      <button type="button" className={active ? "action-btn danger" : "action-btn success"}
         onClick={async () => {
           const r = await setCustomerActive(id, !active);
           setMessage(r.ok ? "Saved" : r.message);
@@ -176,7 +176,7 @@ export function CustomerActions({
       >
         {active ? "Deactivate" : "Reactivate"}
       </button>
-      <button
+      <button type="button" className="action-btn primary"
         onClick={() => {
           location.href = `/receipts/new`;
         }}
@@ -306,7 +306,18 @@ export function ReceiptForm({
   const [receiptDate, setReceiptDate] = useState(asof);
   const [bankAmount, setBankAmount] = useState("");
   const [tdsAmount, setTdsAmount] = useState("0");
+  const [mode, setMode] = useState("NEFT");
+  const [reference, setReference] = useState("");
   const [allocations, setAllocations] = useState<AllocationDraft[]>([]);
+  const [saved, setSaved] = useState<{
+    receiptNo: string;
+    customerId: number;
+    customerName: string;
+    settlement: number;
+    allocated: number;
+    unapplied: number;
+  } | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
 
   const settlement = Math.round(
@@ -394,28 +405,72 @@ export function ReceiptForm({
       return;
     }
 
-    router.push(`/receipts?asof=${asof}`);
+    // Confirm what was saved, then clear the form for the next payment and reload balances.
+    setSaved({
+      receiptNo: r.receiptNo,
+      customerId: Number(customerId),
+      customerName: customers.find((c) => c.id === Number(customerId))?.name ?? "",
+      settlement,
+      allocated: settlement - r.unappliedPaise,
+      unapplied: r.unappliedPaise,
+    });
+    setAllocations([]);
+    setBankAmount("");
+    setTdsAmount("0");
+    setMode("NEFT");
+    setReference("");
     router.refresh();
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   return (
     <form
-      action={submit}
+      ref={formRef}
+      // onSubmit rather than a form action: React resets a form after an action completes, which
+      // made the customer dropdown show the first customer while the form still used the previous one.
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit(new FormData(e.currentTarget));
+      }}
       className="card"
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))",
         gap: 14,
+        scrollMarginTop: 16,
       }}
     >
+      {saved ? (
+        <div className="save-banner" role="status" style={{ gridColumn: "1/-1" }}>
+          <span className="save-banner-icon" aria-hidden="true">✓</span>
+          <div style={{ flex: 1 }}>
+            <b>Receipt {saved.receiptNo} saved</b> for {saved.customerName}.
+            <div style={{ fontSize: 13, marginTop: 2 }}>
+              Settlement {rupees(saved.settlement / 100)} · Allocated {rupees(saved.allocated / 100)} · Unapplied credit{" "}
+              {rupees(saved.unapplied / 100)}
+              {" · "}
+              <a href={`/customers/${saved.customerId}?asof=${asof}`}>View customer →</a>
+            </div>
+          </div>
+          <button type="button" className="save-banner-close" aria-label="Dismiss" onClick={() => setSaved(null)}>
+            ✕
+          </button>
+        </div>
+      ) : null}
       <label>
         Customer
         <select
           name="customer_id"
           value={customerId}
           onChange={(e) => {
+            // A different customer starts a fresh payment: clear everything except the date.
             setCustomerId(e.target.value);
             setAllocations([]);
+            setBankAmount("");
+            setTdsAmount("0");
+            setMode("NEFT");
+            setReference("");
+            setError("");
           }}
           required
         >
@@ -472,7 +527,7 @@ export function ReceiptForm({
 
       <label>
         Mode
-        <select name="mode">
+        <select name="mode" value={mode} onChange={(e) => setMode(e.target.value)}>
           {["NEFT", "RTGS", "IMPS", "UPI", "Cheque"].map((x) => (
             <option key={x}>{x}</option>
           ))}
@@ -481,7 +536,7 @@ export function ReceiptForm({
 
       <label>
         Reference
-        <input name="reference" />
+        <input name="reference" value={reference} onChange={(e) => setReference(e.target.value)} />
       </label>
 
       <div style={{ gridColumn: "1/-1" }}>

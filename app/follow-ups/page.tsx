@@ -39,18 +39,18 @@ export default async function FollowUpsPage({searchParams}:{searchParams:Promise
       </form>
       <section id="next-follow-ups" className="card" style={{marginTop:15,padding:0,overflow:"hidden",scrollMarginTop:16}}>
         <div style={{padding:"16px 16px 0"}}><h2 style={{fontSize:16,margin:0}}>Next follow-ups <span className="muted" style={{fontWeight:400}}>({rows.length})</span></h2><p className="muted" style={{fontSize:12}}>Priority: <b>High</b> = more than 60 days overdue or ₹50,000+ outstanding · <b>Medium</b> = 31–60 days or ₹25,000+ · <b>Low</b> = any other overdue.</p></div>
-        <div style={{overflowX:"auto"}}><table><thead><tr><th>Priority</th><th>Customer</th><th>Invoice no.</th><th className="num">Days overdue</th><th className="num">Balance</th><th>Last follow-up</th><th>Next follow-up</th><th>Status</th><th>Latest promise</th><th className="no-print">Actions</th></tr></thead>
+        <div style={{overflowX:"auto"}}><table className="followups-table"><thead><tr><th>Priority</th><th className="wrap">Customer</th><th>Invoice no.</th><th className="num">Days overdue</th><th className="num">Balance</th><th className="wrap">Last follow-up</th><th>Next follow-up</th><th>Status</th><th className="wrap">Latest promise</th><th className="no-print sticky-actions">Actions</th></tr></thead>
         <tbody>{rows.map(r=>{const i=r.position.invoice,n=r.lastContact;return <tr key={i.id} className={r.status==="Upcoming"?undefined:"row-overdue"}>
           <td><span className={`tag ${priorityTag[r.priority]}`}>{r.priority}</span></td>
-          <td><Link href={`/customers/${i.customerId}?asof=${asof}`}>{r.customer?.name}</Link></td>
+          <td className="wrap"><Link href={`/customers/${i.customerId}?asof=${asof}`}>{r.customer?.name}</Link></td>
           <td><Link href={`/invoices/${i.id}?asof=${asof}`}>{i.invoiceNo}</Link></td>
           <td className="num">{r.position.daysPastDue}</td>
           <td className="num">{money(r.position.outstanding)}</td>
-          <td>{n?<>{dateLabel(n.noteDate)} · {n.noteType}</>:<span className="muted">Never</span>}</td>
+          <td className="wrap">{n?<>{dateLabel(n.noteDate)} · {n.noteType}</>:<span className="muted">Never</span>}</td>
           <td>{r.status==="Never contacted"?<b>Now</b>:dateLabel(r.nextDate)}</td>
           <td><span className={`tag ${statusTag[r.status]}`}>{r.status}</span></td>
-          <td>{r.promise?<>{money(r.promise.amount)} by {dateLabel(r.promise.date)} <span className={`tag ${promiseTag[r.promise.status]}`}>{r.promise.status==="Broken"?"Missed":r.promise.status}</span></>:<span className="muted">—</span>}</td>
-          <td className="no-print"><div style={{display:"flex",gap:10}}><Link href={`/follow-ups/log?invoice=${i.id}&asof=${asof}`}>Log follow-up</Link><Link href={`/invoices/${i.id}/email?asof=${asof}`}>Email</Link></div></td>
+          <td className="wrap">{r.promise?<>{money(r.promise.amount)} by {dateLabel(r.promise.date)} <span className={`tag ${promiseTag[r.promise.status]}`}>{r.promise.status==="Broken"?"Missed":r.promise.status}</span></>:<span className="muted">—</span>}</td>
+          <td className="no-print sticky-actions"><div className="row-actions"><Link className="mini-btn primary" href={`/follow-ups/log?invoice=${i.id}&asof=${asof}`}>Log</Link><Link className="mini-btn" href={`/invoices/${i.id}/email?asof=${asof}`}>Email</Link></div></td>
         </tr>})}</tbody></table>{rows.length===0?<p className="muted" style={{padding:"0 16px 16px"}}>No follow-ups match these filters.</p>:null}</div>
       </section>
       <section id="completed" className="card" style={{marginTop:15,padding:0,overflow:"hidden",scrollMarginTop:16}}>

@@ -9,7 +9,7 @@ export default async function InvoicePage({params,searchParams}:{params:Promise<
     const overdue=outstanding>0&&(p?.daysPastDue??0)>0;
     const allocations=d.allocations.filter(a=>a.invoiceId===i.id&&a.allocationDate<=asof);
     const fields:[string,string,boolean?][]=[["Customer",customer?.name??"—"],["Contact",customer?.contactPerson??"—"],["Invoice date",dateLabel(i.invoiceDate)],["Due date",dateLabel(i.dueDate)],["Amount",money(i.total)],["Balance",money(outstanding)],["Days overdue",overdue?String(p!.daysPastDue):"0",overdue]];
-    return <><Link href={`/invoices?asof=${asof}`} className="no-print back-link">← All invoices</Link><h1>{i.invoiceNo}</h1>
+    return <><Link href={`/invoices?asof=${asof}`} className="no-print back-link">← All invoices</Link><h1 className="invoice-title">{i.invoiceNo}</h1>
       <div className="detail-grid">{fields.map(([label,value,red])=><div key={label}><div className="label">{label}</div><div className={red?"value red":"value"}>{value}</div></div>)}</div>
       <div className="progress"><div style={{width:`${Math.min(100,Math.max(0,pct))}%`}}/></div>
       <p className="muted" style={{marginTop:8}}>{money(paid)} paid of {money(i.total)} ({pct}%)</p>

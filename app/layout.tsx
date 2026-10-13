@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { Suspense } from "react";
 import "./globals.css";
@@ -37,14 +38,22 @@ export default function RootLayout({
             flexWrap: "wrap",
           }}
         >
-          <div>
-            <strong style={{ fontSize: 17, color: "white" }}>
-              Brightwater Advisory
-            </strong>
-            <div style={{ fontSize: 12, color: "#b8c8d9" }}>
-              Receivables Hub · Baner, Pune 411045
-            </div>
-          </div>
+          <Link href="/" className="brand" aria-label="Brightwater Advisory — Receivables Hub home">
+            <span className="brand-mark" aria-hidden="true">
+              <svg width="26" height="26" viewBox="0 0 32 32">
+                <path d="M4 20c4-4 8-4 12 0s8 4 12 0" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                <path d="M4 12c4-4 8-4 12 0s8 4 12 0" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity=".55" />
+              </svg>
+            </span>
+            <span>
+              <span className="brand-name">Brightwater Advisory</span>
+              <span className="brand-sub">
+                <span className="brand-product">Receivables Hub</span>
+                <span className="brand-dot">·</span>
+                Baner, Pune 411045
+              </span>
+            </span>
+          </Link>
 
           <Suspense fallback={<div className="global-search" />}>
             <GlobalSearch />

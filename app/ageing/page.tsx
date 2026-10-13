@@ -3,6 +3,7 @@ import { loadArData } from "@/lib/ar/load";
 import { customerPositions } from "@/lib/ar/positions";
 import { balance, money, dateLabel } from "@/lib/format";
 import { asOfDate } from "@/lib/asof";
+import { AutoSubmitCheckbox } from "@/components/auto-submit-checkbox";
 
 export const dynamic = "force-dynamic";
 
@@ -70,18 +71,19 @@ export default async function AgeingReport({
               alignItems: "center",
               gap: 8,
               fontWeight: 400,
+              cursor: "pointer",
+              fontSize: 15,
+              color: "var(--ink)",
+              display: "inline-flex",
             }}
           >
-            <input
-              type="checkbox"
+            <AutoSubmitCheckbox
+              key={String(hideZero)}
               name="hideZero"
               value="1"
               defaultChecked={hideZero}
             />
             Hide customers with zero balance
-            <button type="submit" style={{ marginLeft: 6 }}>
-              Apply
-            </button>
           </label>
         </form>
 
