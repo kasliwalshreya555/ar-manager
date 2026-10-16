@@ -1,0 +1,2357 @@
+Claude Code chat log — Brightwater AR Manager
+Session: c20386e5-f304-4813-b314-197d081926bd
+Exported: 15 Oct 2026, 4:11 pm (IST)
+
+Contains every user message and every reply from Claude. Lines in [brackets] note an action
+Claude took (a file read/edit, a command, a search); their raw outputs and Claude's internal
+reasoning are omitted. Screenshots are noted but not included. The workspace id is redacted.
+
+==============================================================================
+USER  (13 Oct 2026, 5:18 pm)
+==============================================================================
+i want some changes as per ui in receipts sections can we do? I will elaborate it further what to do
+
+--- CLAUDE ---
+  [Glob: pattern "**/*receipt*/**/*.{tsx,ts}"]
+Yes, we can do that. The Receipts section is in two pages:
+
+- [app/receipts/page.tsx](app/receipts/page.tsx), the receipts list
+- [app/receipts/new/page.tsx](app/receipts/new/page.tsx), the new receipt form
+
+Tell me what you want changed: layout, columns, form fields, styling, filters or anything else. Screenshots or a description of the target UI would help too.
+
+==============================================================================
+USER  (13 Oct 2026, 5:18 pm)
+==============================================================================
+the receipts list i want to do
+
+--- CLAUDE ---
+  [Read: app\receipts\page.tsx]
+  [Read: app\receipts\new\page.tsx]
+Sure. One thing first: there isn't a receipts list right now. [app/receipts/page.tsx](app/receipts/page.tsx) shows the **"Record payment" form** (the same form as `/receipts/new`, but it also passes invoice balances as of the selected date). So `/receipts` and `/receipts/new` both open a form.
+
+So we'd be **building** the list page, probably at `/receipts`, with the form kept at `/receipts/new` (I'd move the as-of-date invoice balance logic there so nothing is lost).
+
+To build it the way you want, tell me:
+
+1. **Columns:** for example date, customer, reference/UTR, bank amount, TDS, settlement total, amount applied, unapplied credit, and which invoices it was allocated to.
+2. **Filters/search:** by customer, date range, as-of date, only receipts with unapplied credit?
+3. **Sorting:** newest first by default?
+4. **Actions:** a "Record payment" button, clicking a row to see allocation details, delete or edit?
+5. **Totals:** a summary row or cards, such as total received, total TDS and total unapplied?
+6. **Styling:** should it match an existing list (for example the customers or invoices page), or do you have a screenshot or mockup?
+
+Share as much of this as you have, and I'll fill in the rest by following the existing pages.
+
+==============================================================================
+USER  (13 Oct 2026, 5:20 pm)
+==============================================================================
+sorry in the invoices UI after opening any invoice
+
+--- CLAUDE ---
+  [Glob: pattern "app/invoices/**/*.tsx"]
+  [Read: app\invoices\[id]\page.tsx]
+Got it, the invoice detail page: [app/invoices/[id]/page.tsx](app/invoices/[id]/page.tsx). The receipts part there is the **"Allocations"** section at the bottom. Right now each line is plain text:
+
+```
+12 Mar 2026 · ₹50,000.00  receipt #7
+```
+
+I also found a small bug in that section: the "No allocations" message never shows. The code uses `.map(...) || <p>`, and an empty array still counts as true in JavaScript, so the fallback is skipped. An invoice with no receipts shows an empty card instead. I'll fix that as part of the change.
+
+What would you like the receipts section to look like? For example:
+
+- **A table instead of text lines**, with columns like date, receipt #/reference, customer payment mode, bank amount, TDS and amount allocated to this invoice
+- **More receipt details**, such as reference/UTR, bank amount vs TDS split and any unapplied credit left on that receipt
+- **Clickable receipt links** or a "Record payment" button pre-filled for this invoice
+- **A totals row**, such as total received against this invoice
+- **A different heading or position**, for example "Receipts" instead of "Allocations", or moved above the summary
+
+Tell me which of these you want, or describe or share a screenshot of the layout you have in mind.
+
+==============================================================================
+USER  (13 Oct 2026, 5:21 pm)
+==============================================================================
+[1 screenshot attached]
+dont take the color but in above format i want
+
+--- CLAUDE ---
+  [Bash]
+  [Bash]
+Let me simplify that grid CSS so the cell dividers render cleanly.
+  [Bash]
+  [Read: app\globals.css]
+  [Edit: app\globals.css]
+Now the invoice page:
+  [Write: app\invoices\[id]\page.tsx]
+  [Bash]
+I've rebuilt the top of the invoice detail page in the format from your screenshot, using the app's existing light theme instead of the dark colors. The TypeScript check passes for the files I changed. I haven't opened it in the browser yet, so I haven't seen it rendered.
+
+**What it shows now** ([app/invoices/[id]/page.tsx](app/invoices/[id]/page.tsx)):
+- **A grid of labelled cells:** Customer, Contact, Invoice date, Due date, Amount, Balance and Days overdue. Days overdue turns red when the invoice is past due and still has money owing.
+- **A progress bar** under the grid, with the line "₹X paid of ₹Y (Z%)". "Paid" counts both receipts and credit notes, so paid plus balance always equals the invoice amount.
+- **Everything else is kept below it:** description, tax breakdown, a received/credited line, status tags, the action buttons and the Allocations section.
+
+**Notes:**
+- I kept the app's date style (`01-Jul-2026`) rather than the `2026-07-01` in your screenshot. I can switch it if you prefer.
+- I fixed the bug I mentioned earlier: the "No allocations" message now appears when an invoice has no receipts.
+- The new styles (`.detail-grid` and `.progress`) are at the end of [app/globals.css](app/globals.css).
+- The TypeScript check reports one error, in `tests/ar.test.ts`. It imports a type that `lib/ar/positions.ts` doesn't export, and I didn't touch either file.
+
+Open any invoice to check it. What would you like to change next, for example the receipts/Allocations section as a table?
+
+==============================================================================
+USER  (13 Oct 2026, 5:27 pm)
+==============================================================================
+[1 screenshot attached]
+add All invoices page button so that i can come back to main page of invoice from a particular invoice example attached
+
+--- CLAUDE ---
+  [Grep: pattern "href="]
+  [Bash]
+  [Bash]
+I added a **"← All invoices"** link above the invoice number, as in your example ([app/invoices/[id]/page.tsx:12](app/invoices/[id]/page.tsx#L12)). It goes back to the main invoices page, keeping your selected as-of date, so the list shows the same date you were viewing. It's hidden when you print the invoice.
+
+The TypeScript check passes for this page. I haven't opened it in the browser, so open any invoice to check it.
+
+==============================================================================
+USER  (13 Oct 2026, 5:30 pm)
+==============================================================================
+give some spaces after all invoices button also arrange terms like Taxable ₹75,000.00 · CGST ₹6,750.00 · SGST ₹6,750.00 · IGST ₹0.00
+
+Received ₹0.00 · Credited ₹0.00 
+
+everything in proper format easy to read
+
+--- CLAUDE ---
+  [Bash]
+Now I'll restructure the card into labelled columns.
+  [Edit: app\invoices\[id]\page.tsx]
+  [Edit: app\invoices\[id]\page.tsx]
+  [Bash]
+I added the spacing and laid out the invoice details so they're easier to read. The TypeScript check passes for this page, but I haven't opened it in the browser, so open an invoice to check how it looks.
+
+**Spacing:** there's now a 20px gap between "← All invoices" and the invoice number.
+
+**Details card**, from top to bottom:
+- **Description:** shown on its own line with a bold label.
+- **Status:** now a coloured badge: green for Paid, red for Overdue, amber for Due. The Part-paid and Disputed badges are unchanged.
+- **Two side-by-side columns** that stack on narrow screens, with labels on the left and amounts aligned on the right:
+
+| Tax breakdown | | Payments | |
+|---|---|---|---|
+| Taxable value | ₹75,000.00 | Received | ₹0.00 |
+| CGST | ₹6,750.00 | Credited | ₹0.00 |
+| SGST | ₹6,750.00 | **Balance due** | **₹88,500.00** |
+| IGST | ₹0.00 | | |
+| **Invoice total** | **₹88,500.00** | | |
+
+The amounts in this table are an example only. The page shows each invoice's own figures, and the bold rows are new totals I added.
+
+The action buttons and the Allocations section are unchanged. The changes are in [app/invoices/[id]/page.tsx](app/invoices/[id]/page.tsx) and at the end of [app/globals.css](app/globals.css).
+
+==============================================================================
+USER  (13 Oct 2026, 5:36 pm)
+==============================================================================
+can we add email reminder for the overdue payments like example attached and also if part of whole amount is paid then reminder for balance due
+
+--- CLAUDE ---
+You mentioned an example but no attachment came through. I'll check what email support exists in the app first.
+  [Bash]
+Yes, we can add this. Two things first.
+
+**1. Your example didn't come through.** I can't see an attachment on this message. Please paste the screenshot again if you want me to match its wording or layout.
+
+**2. The app has no email sending set up yet.** Customers have an email address saved, but there's no email service and nothing in `.env.local` for one. There are two ways to do this:
+
+- **A. Open your email app (recommended to start).** A "Send reminder" button on overdue or part-paid invoices opens Outlook or Gmail with the email already written: customer's address, subject and message. You review it and press send. No setup or account is needed, and it works today.
+- **B. Send directly from the app.** The app sends the email itself through an email service such as Resend (free tier available) or your company's mail server. You'd need to create an account and give me an API key. This is also what makes **automatic** reminders possible later, for example every week for overdue invoices.
+
+Either way, the wording changes with the payment state:
+- **Overdue, nothing paid:** "Invoice INV-001 for ₹50,000.00 was due on 31-Jul-2026 and is now 74 days overdue…"
+- **Part-paid:** "We've received ₹30,000.00 against invoice INV-001 (total ₹88,500.00). The balance of ₹58,500.00 is due…" (plus "overdue by X days" if it's past the due date)
+
+Reminders can also be logged automatically as an "Email" note on the customer, since the app already tracks Call/Email/Meeting notes. That gives you a record of when each reminder went out.
+
+Which option do you want, A or B? And can you share the example again?
+
+==============================================================================
+USER  (13 Oct 2026, 5:39 pm)
+==============================================================================
+I'm not able to see the changes
+make that changes in this way when click on Send email will should be able to see the next screen
+
+--- CLAUDE ---
+  [Read: components\forms.tsx]
+  [Bash]
+The dev server is running on port 3000. Let me check that it's serving the new invoice page.
+  [Bash]
+  [Bash]
+  [Read: lib\actions.ts]
+  [Bash]
+I'll put the reminder wording in its own file so it's easy to edit:
+  [Write: lib\ar\reminder.ts]
+  [Write: app\invoices\[id]\email\page.tsx]
+  [Edit: app\invoices\[id]\email\page.tsx]
+  [Edit: components\forms.tsx]
+Now the action links under the progress bar on the invoice page, as in your reference screenshot:
+  [Edit: app\invoices\[id]\page.tsx]
+  [Bash]
+The overdue case works. Let me find a part-paid invoice and check the balance-due version.
+  [Bash]
+No part-paid invoices among the first 40, so I'll cover that case with a unit test instead.
+  [Bash]
+  [Write: lib\ar\reminder.test.ts]
+  [Bash]
+  [Bash]
+Vitest isn't set up for the `@/` path alias, so I'll switch to relative imports, the same way the other `lib/ar` files do.
+  [Bash]
+I've added the Send email screen. On an invoice that still has money owing, a button now opens an email reminder for you to review. The wording changes depending on whether the invoice is overdue or part-paid. All 29 tests pass, including 3 new ones for the reminder wording. The TypeScript check passes for everything I changed.
+
+**Why you couldn't see the changes:** I checked your running app and it is serving the new invoice page. Your browser is most likely showing an old cached copy. Press **Ctrl+Shift+R** on an invoice page such as `http://localhost:3000/invoices/1769`.
+
+**On the invoice page:** below the progress bar there are now two buttons. They only appear when the invoice has a balance and isn't cancelled.
+- **The reminder button.** Its label depends on the invoice: "Send overdue reminder" (nothing paid, past due), "Send balance due reminder" (part-paid) or "Send email" (not yet due).
+- **Record payment**, which opens the payment form.
+
+**The Send email screen** (`/invoices/<id>/email`):
+- **To** is filled from the customer's saved email. **Subject** and **Message** are written for you and you can edit all three.
+- The **overdue** version says, for example: "invoice BWA/26-27/0024 … was due on … and is now 8 days overdue."
+- The **part-paid** version says, for example: "Thank you for your payment of ₹30,000.00 … A balance of ₹58,500.00 remains outstanding…" It adds a "Paid" line to the invoice details and says how many days overdue if it's past the due date.
+- **Open in email app** opens Outlook or Gmail with the email ready, and you press send there.
+  - A checkbox, on by default, saves an "Email" note on the customer so you have a record of each reminder.
+  - The note is saved when you click the button, even if you don't actually send the email.
+- There's also **Copy message**, plus **Cancel** and "← Back" links to the invoice.
+
+**What I checked:**
+- **Overdue:** I loaded a real overdue invoice in your running app. The email showed the right address, subject, "Dear Neha Joshi," and "8 days overdue".
+- **Part-paid:** none of the first 40 invoices were part-paid, so I tested that version with automated tests only. It hasn't been checked on a real invoice.
+- I didn't click the buttons in a browser, so opening your email app and saving the note are untested.
+
+The reminder text is in one place, [lib/ar/reminder.ts](lib/ar/reminder.ts), so the wording is easy to change. The sign-off currently says "Accounts Receivable, Brightwater", so tell me if it should be different. The new screen is [app/invoices/[id]/email/page.tsx](app/invoices/[id]/email/page.tsx).
+
+You mentioned an example but no attachment came through. If you share it again, I can match its wording and layout.
+
+==============================================================================
+USER  (13 Oct 2026, 5:47 pm)
+==============================================================================
+[1 screenshot attached]
+give background color to all invoices
+if overdue light red color 
+if part paid part remaining light yellow color
+nothing for paid
+
+--- CLAUDE ---
+  [Read: app\invoices\page.tsx]
+  [Bash]
+Rows on the invoices list now have a background colour based on their status. I checked the running app: on today's date, 10 rows show light red and 4 show light yellow.
+
+| Invoice state | Row background |
+|---|---|
+| Overdue, nothing paid | Light red |
+| Part-paid, balance remaining | Light yellow |
+| Paid | None |
+| Cancelled or not yet due | None |
+
+The status tags stay on top of the coloured rows.
+
+**Decision for you:** an invoice that is both overdue and part-paid, like BWA/26-27/0017, gets yellow, because you asked for part-paid rows to be yellow. Its "Overdue" tag still shows in red. If you'd rather overdue win and show red, it's a one-word change.
+
+The change is in [app/invoices/page.tsx](app/invoices/page.tsx), plus one style line at the end of [app/globals.css](app/globals.css). Press Ctrl+Shift+R if the browser still shows the old list.
+
+==============================================================================
+USER  (13 Oct 2026, 5:48 pm)
+==============================================================================
+little more dark unable to see
+
+--- CLAUDE ---
+  [Bash]
+I've made both row colours darker. They're now about as strong as the "Overdue" and "Part-paid" tags, while the text stays easy to read:
+
+- **Overdue:** light red, changed from `#fef3f2` to `#fde2df`.
+- **Part-paid:** light yellow, changed from `#fffaeb` to `#fef0c2`.
+
+The change is the last line of [app/globals.css](app/globals.css). Refresh the invoices page with Ctrl+Shift+R to see it. If it's still too faint, I can go a step darker.
+
+==============================================================================
+USER  (13 Oct 2026, 5:49 pm)
+==============================================================================
+apply sorting to all columns ascending and descending
+
+--- CLAUDE ---
+I'll make every column header clickable. The first click sorts that column ascending, the second click sorts it descending. The sort is kept in the URL, so it survives a refresh and keeps your as-of date.
+  [Write: app\invoices\page.tsx]
+  [Bash]
+The page write was rejected because I'd changed that file with a shell edit since last reading it. I'll re-read it and apply the change again.
+  [Read: app\invoices\page.tsx]
+  [Write: app\invoices\page.tsx]
+  [Bash]
+Every column on the invoices list now sorts both ways. I tested it on your running app and all the sorts I tried came back in the right order.
+
+**How it works:**
+- Click a column header once for ascending, and again for descending.
+- The sorted column shows **▲** (ascending) or **▼** (descending). The other columns show a faint **↕** so you can see they're clickable.
+- By default the list still opens newest invoice date first, as before.
+- The sort is saved in the page address, so it survives a refresh and can be bookmarked. It also keeps your as-of date.
+- Row colours and the totals row are unchanged.
+
+**How each column sorts:**
+- **Money and Days late** sort by number, not as text.
+- **Dates** sort by actual date order.
+- **Status** ascending goes Overdue → Due → Paid → Cancelled, so the invoices needing attention come first.
+- **Cancelled invoices** sit at the bottom when Outstanding or Days late is sorted highest first.
+- **Ties** are broken by invoice number.
+
+**Results from the test:**
+- **Total, ascending:** ₹29,500 → ₹29,500 → ₹35,400…
+- **Total, descending:** ₹4,72,000 → ₹4,13,000 → ₹3,54,000…
+- **Customer A→Z:** Kamshet → Krishnaveni…
+- **Days late, highest first:** 236 → …
+
+The changes are in [app/invoices/page.tsx](app/invoices/page.tsx), plus the header styles at the end of [app/globals.css](app/globals.css).
+
+==============================================================================
+USER  (13 Oct 2026, 5:50 pm)
+==============================================================================
+show some icon after every column so that we can come to know that column is sortable
+
+--- CLAUDE ---
+Each header already has a faint ↕, but it's too small and pale to notice. I'll replace it with a clearer up/down arrow icon. On the sorted column, the arrow for the current direction will be highlighted.
+  [Bash]
+All 10 column headers now show an up/down arrow icon (▴ above ▾) right after the column name, so it's clear they can be sorted. I checked the running page: all 10 icons render, and only the sorted column has a highlighted arrow.
+
+- **Unsorted columns:** both arrows are grey, and they darken when you hover over the header.
+- **Sorted column:** the top arrow turns dark navy for ascending, or the bottom arrow for descending. The other arrow stays grey.
+
+The icon is a small inline SVG in [app/invoices/page.tsx](app/invoices/page.tsx), and its colours are at the end of [app/globals.css](app/globals.css). Press Ctrl+Shift+R if you don't see it.
+
+==============================================================================
+USER  (13 Oct 2026, 5:53 pm)
+==============================================================================
+[1 screenshot attached]
+please check earlier there was some issue which was not allowing me to create new customer and showing error
+
+--- CLAUDE ---
+The error comes from the database check on GSTIN, and you left GSTIN empty. My guess is the empty box is being saved as a blank value instead of "no GSTIN". Let me confirm.
+  [Bash]
+  [Read: components\forms.tsx]
+  [Edit: lib\actions.ts]
+  [Bash]
+Now I'll wire these into save and update:
+  [Bash]
+TypeScript is clean. I'll check the new validation rules against sample form inputs without writing anything to your database.
+  [Bash]
+  [Bash]
+I've fixed the customer form, so you should now be able to add a customer with GSTIN left empty. I haven't saved a real customer, to avoid adding test data to your database, so please try **Save customer** again with the same details.
+
+**What was wrong** (all in [lib/actions.ts](lib/actions.ts)):
+
+1. **The error in your screenshot:** an empty GSTIN box was saved as a blank value, but the database only accepts a valid GSTIN or nothing at all. Empty GSTIN and Phone are now saved as "nothing", so the database accepts them.
+2. **Choosing "Inactive" saved the customer as Active.** It now saves as Inactive.
+3. **Editing an existing customer always failed.** The customer code box is locked when editing, so the browser never sent it, and the save was rejected for a missing code. Edits no longer need the code, and it can't be changed after creation.
+
+I also made two small improvements:
+- **GSTIN is checked before saving.** It's converted to capitals and trimmed first, so `27abcde1234f1z5` becomes `27ABCDE1234F1Z5`. A wrong format now shows "GSTIN must be 15 characters, e.g. 27ABCDE1234F1Z5, or left blank." instead of a database error.
+- **Validation errors are plain sentences** instead of a block of technical text.
+
+I checked the new rules against sample inputs, and they behave as described above. All 29 tests and the TypeScript check pass.
+
+==============================================================================
+USER  (13 Oct 2026, 5:57 pm)
+==============================================================================
+[2 screenshots attached]
+this is not implemented in my site so please implement this
+
+--- CLAUDE ---
+I'll build a Follow-ups page like that one, adapted to your app's data and light theme. First I'll check the navigation and how notes and follow-ups are stored.
+  [Bash]
+  [Bash]
+  [Bash]
+  [Write: lib\ar\followups.ts]
+Now the page itself:
+  [Write: app\follow-ups\page.tsx]
+  [Write: app\follow-ups\log\page.tsx]
+Now the supporting changes: the note form can return you to Follow-ups after saving, the sidebar gets a link, and one style is added.
+  [Bash]
+  [Bash]
+TypeScript is clean. Now I'll add tests for the follow-up rules and load the pages from your running app.
+  [Write: lib\ar\followups.test.ts]
+  [Bash]
+I've added a **Follow-ups** page to your app, based on the one in your screenshots but using your app's data and light theme. It's in the sidebar between Receipts and Statements & reports. I loaded it from your running app and it shows real data. All 36 tests pass, including 7 new ones for the follow-up rules, and the TypeScript check is clean.
+
+**What's on the page** ([app/follow-ups/page.tsx](app/follow-ups/page.tsx)), with today's numbers:
+
+- **Five summary cards:**
+  - customers needing a call today: **7**
+  - overdue follow-ups: **13**
+  - due today: **0**
+  - upcoming: **1**
+  - completed in the last 7 days: **1**
+- **Filters:** customer, follow-up status (Overdue, Never contacted, Due today or Upcoming) and "Completed in the last 7/30/90 days". There's also a Reset button.
+- **Next follow-ups table:** Priority, Customer, Invoice no., Days overdue, Balance, Last follow-up, Next follow-up, Status, Latest promise, and Actions.
+  - Promises are tagged Kept, Missed or Pending.
+  - Rows that need action have the light red background.
+  - The highest-priority, most urgent rows come first.
+  - Each row has **Log follow-up** and **Email** links. Email opens the reminder screen built earlier.
+- **Completed follow-ups table:** the calls, emails and meetings logged in the chosen period.
+
+**Logging a call:** "Log follow-up" opens a new screen ([app/follow-ups/log/page.tsx](app/follow-ups/log/page.tsx)). It shows the invoice, contact person, phone and balance, plus a form for type, note, next follow-up date and promise date/amount. After saving it takes you back to Follow-ups. Before this, there was no screen in the app where you could log a call.
+
+**The rules** ([lib/ar/followups.ts](lib/ar/followups.ts)):
+
+- **What's listed:** every unpaid overdue invoice that isn't cancelled.
+- **Next follow-up:** the follow-up date set on the last logged note. If none was set, it's the last contact plus 7 days. If the customer was never contacted, it's due now.
+- **What counts as contact:** a note logged against that invoice, or a general note on that customer.
+- **Priority:**
+  - **High:** more than 60 days overdue, or ₹50,000 or more outstanding.
+  - **Medium:** 31–60 days overdue, or ₹25,000 or more.
+  - **Low:** any other overdue invoice.
+
+**Left out:** the reference site's "Only follow-ups logged by me" filter needs user logins, which your app doesn't have.
+
+I haven't saved a follow-up through the new form, to avoid adding test data to your database. Please log one call to confirm it works end to end.
+
+==============================================================================
+USER  (13 Oct 2026, 6:02 pm)
+==============================================================================
+[1 screenshot attached]
+change the brightware advisort heading bg color as the main page and this both looking same unable to differentiate
+
+--- CLAUDE ---
+  [Bash]
+  [Bash]
+The "Brightwater Advisory" header now has the same dark navy background as the sidebar, so it stands out clearly from the pale page area. I checked that the running app serves the new header, but I haven't seen it in a browser, so press **Ctrl+Shift+R** to load it.
+
+To keep the header readable on navy:
+- "Brightwater Advisory" is now white.
+- "Receivables Hub · Baner, Pune 411045" and the "AS-AT DATE" label are a soft light blue.
+- The **Apply** button is now white with navy text, because a navy button would disappear on the navy header.
+
+The date picker works the same as before. The change is in [app/layout.tsx](app/layout.tsx), plus one style line at the end of [app/globals.css](app/globals.css). If you'd rather the header be a different shade from the sidebar, for example a lighter blue, tell me and I'll adjust it.
+
+==============================================================================
+USER  (13 Oct 2026, 6:03 pm)
+==============================================================================
+now change color of left hand side panel both are same
+
+--- CLAUDE ---
+I'll keep the header dark navy and make the sidebar a lighter, bluer shade so the two are clearly different.
+  [Bash]
+The sidebar is now a lighter steel blue (`#24507f`), so it's clearly different from the dark navy header (`#142b45`). The white menu links are still easy to read on it. I also lightened the small "INR · India / As-at reporting" text at the bottom of the sidebar so it stays readable.
+
+The change is in [app/layout.tsx](app/layout.tsx). I haven't looked at it in a browser, so press Ctrl+Shift+R to see it. If you'd like more or less contrast, or want the link for the current page highlighted in the sidebar, tell me.
+
+==============================================================================
+USER  (13 Oct 2026, 6:03 pm)
+==============================================================================
+make all options in button format left hand side panel
+
+--- CLAUDE ---
+I'll turn each sidebar link into a button, with a hover effect and the current page highlighted. Highlighting the current page needs to know which page you're on, so the menu moves into a small client component.
+  [Write: components\sidebar-nav.tsx]
+  [Read: app\layout.tsx]
+  [Read: app\layout.tsx]
+  [Edit: app\layout.tsx]
+  [Bash]
+Every option in the left-hand panel is now a button. I checked the running app: all 6 render as buttons, and on the Invoices page the Invoices button is the highlighted one. The TypeScript check is clean.
+
+- **Normal:** a rounded button with a soft see-through fill, a thin light border and bold white text.
+- **Hover:** the button gets brighter.
+- **Current page:** a solid white button with navy text, so you can always see where you are. This works on sub-pages too, so Invoices stays highlighted when you open a single invoice.
+
+The buttons live in a new file, [components/sidebar-nav.tsx](components/sidebar-nav.tsx), which [app/layout.tsx](app/layout.tsx) now uses. The button styles are at the end of [app/globals.css](app/globals.css). I haven't looked at it in a browser, so press Ctrl+Shift+R to see it.
+
+==============================================================================
+USER  (13 Oct 2026, 6:04 pm)
+==============================================================================
+[1 screenshot attached]
+align in
+
+--- CLAUDE ---
+I can see two problems: the Apply button sits higher than the date box, and the date text is pale grey on white, so it's hard to read. Tailwind makes the input take the label's light colour. I'll fix both.
+  [Bash]
+The Apply button now lines up with the date box. Both are the same height (40px) with their bottom edges aligned, and the "AS-AT DATE" label sits above them.
+
+I also fixed the date text, which was pale grey on white and hard to read. It's now the normal dark text colour.
+
+The changes are in [components/asof-date-picker.tsx](components/asof-date-picker.tsx) and at the end of [app/globals.css](app/globals.css). I haven't looked at it in a browser, so press Ctrl+Shift+R to see it.
+
+==============================================================================
+USER  (13 Oct 2026, 6:14 pm)
+==============================================================================
+make that invoice color change on dashboard also for yellow and red thing
+
+--- CLAUDE ---
+  [Bash]
+The **Overdue invoices** table on the Dashboard now uses the same row colours as the Invoices page. I checked the running app: on today's date the table shows 8 red rows and 4 yellow ones.
+
+- **Light red:** overdue with nothing paid.
+- **Light yellow:** part-paid with a balance remaining.
+
+This table only lists overdue invoices, so there are no uncoloured rows. As on the Invoices page, an invoice that is both overdue and part-paid shows yellow.
+
+The change is one line in [app/page.tsx](app/page.tsx), and it reuses the existing colours, so if you change a shade later both pages update together. Press Ctrl+Shift+R to see it.
+
+==============================================================================
+USER  (13 Oct 2026, 6:15 pm)
+==============================================================================
+more dark and make more dark the labels part paid and disputed
+
+--- CLAUDE ---
+  [Bash]
+  [Bash]
+I've made the row colours and the labels darker.
+
+**Row backgrounds** (on the Dashboard, Invoices and Follow-ups pages):
+- **Overdue:** a deeper red, `#fbcbc5`.
+- **Part-paid:** a stronger yellow, `#fde08a`.
+
+**Labels:** these are now solid colours with bold white text, so they stand out even on the coloured rows.
+- **Part-paid:** dark amber/orange.
+- **Disputed:** solid red.
+
+Other labels that use the same red or amber style also change everywhere: Overdue, the High/Medium priority tags, Never contacted, Missed promises and Due today. That keeps them consistent, and the red Overdue label still stands out on red rows. Paid (green) and the plain grey tags are unchanged.
+
+All changes are in [app/globals.css](app/globals.css). I haven't looked at them in a browser, so press Ctrl+Shift+R to see them.
+
+==============================================================================
+USER  (13 Oct 2026, 6:18 pm)
+==============================================================================
+[1 screenshot attached]
+needs attention shows me the data collectively right by i want it clickable if 1 customer over their credit limit then on click that should get open same handle if the count is more than 1 for all parameters
+
+--- CLAUDE ---
+I'll make each line clickable. If the count is 1, clicking opens that record directly. If it's more than 1, clicking expands a list of the items, each linking to its own page. A count of 0 stays as plain text. First I'll check what the R14 control check returns.
+  [Bash]
+  [Edit: app\page.tsx]
+  [Bash]
+It works on your live data. One note in the follow-ups list is very long, so I'll shorten long note text in the list to keep it tidy.
+  [Bash]
+Every line in **Needs attention** on the Dashboard is now clickable. I checked it against your live data, and the TypeScript check is clean.
+
+**How it behaves:**
+- **Count of 1:** the line shows the name and clicking opens that record directly. For example, "**1** customers over their credit limit · Kundalika Castings Pvt. Ltd. →" opens that customer's page.
+- **Count of more than 1:** the line has a ▸ arrow, and clicking expands a list underneath. Each entry is a link with a short detail line below it. Click again to collapse.
+- **Count of 0:** plain text, nothing to click.
+- Clickable lines get a light highlight when you hover over them.
+
+**Where each line leads:**
+
+| Line | Each item shows | Clicking an item opens |
+|---|---|---|
+| Over credit limit | Customer · "Net ₹X vs limit ₹Y" | Customer page |
+| Broken payment promises | Customer · invoice · "Promised ₹X by date · received ₹Y" | The invoice, or the customer if the promise wasn't for one invoice |
+| Follow-ups due | Customer · invoice · due date and note (long notes are shortened) | The Log follow-up screen for that invoice, or the customer page |
+| Unapplied credit | Customer · amount unapplied | Customer page |
+| R14 control check | Shows **PASS** as before. If it ever fails, it lists each customer with the difference amount. | Customer page |
+
+**What your data shows today:**
+- 1 customer over their credit limit: Kundalika Castings.
+- 2 broken promises: Varandha Freight on BWA/26-27/0003, and Kundalika Castings.
+- 5 follow-ups due.
+- 0 customers with unapplied credit.
+- R14 check: PASS.
+
+**One thing to know:** "follow-ups due" here still uses the Dashboard's original rule, which only counts notes with a follow-up date set that hasn't been marked done. The new Follow-ups page uses the wider rule, so its numbers will differ. I can switch this line to the Follow-ups page's rule if you want them to match.
+
+The changes are in [app/page.tsx](app/page.tsx), with the `Attention` component at the bottom of that file, plus styles at the end of [app/globals.css](app/globals.css). Press Ctrl+Shift+R if you don't see them.
+
+==============================================================================
+USER  (13 Oct 2026, 6:20 pm)
+==============================================================================
+arrange the items in the customers page as well tabular or something other format
+
+[Pasted text]
+
+Profile
+Suresh Rao · No phone · Credit terms 30 days · Limit ₹4,00,000.00 · TDS 10%
+
+Ageing: Not due: ₹0.00 · 1-30: ₹0.00 · 31-60: ₹0.00 · 61-90: ₹82,600.00 · 91-180: ₹1,29,800.00 · Over 180: ₹2,34,200.00
+[End of pasted text]
+
+example
+
+--- CLAUDE ---
+  [Read: app\customers\[id]\page.tsx]
+  [Write: app\customers\[id]\page.tsx]
+  [Bash]
+The script didn't pick up a customer ID from the list page. I'll find one another way.
+  [Bash]
+I've rearranged the customer detail page into clear sections. I loaded a customer page from your running app and every section renders. The TypeScript check is clean.
+
+**Top of the page**
+- An "← All customers" link back to the list, as on the invoice page.
+- The customer name with code and location, plus **Active/Inactive** and **Over credit limit** tags.
+- **Five summary cards:** Net balance, Outstanding, Overdue (red when above zero), Unapplied credit, and a new **Credit limit used**. It shows a percentage with a bar that turns red when the customer is over their limit.
+
+**Profile:** a labelled grid in the same style as the invoice page.
+
+| Contact person | Email | Phone | GSTIN | Location | Credit terms | Credit limit | TDS rate |
+|---|---|---|---|---|---|---|---|
+| Suresh Rao | … | — | — | City, State | 30 days | ₹4,00,000.00 | 10% |
+
+The Edit / Activate buttons sit under the grid.
+
+**Ageing:** a table instead of one long line.
+
+| Bucket (days overdue) | Amount | % of outstanding | |
+|---|---|---|---|
+| ● Not due | ₹0.00 | 0.0% | ▱▱▱▱ |
+| ● 61-90 | ₹82,600.00 | 18.6% | ▰▱▱▱ |
+| ● Over 180 | ₹2,34,200.00 | 52.6% | ▰▰▰▱ |
+| **Total outstanding** | **₹4,46,600.00** | 100.0% | |
+
+The table above is an example built from the figures you pasted. The page shows all six buckets and the real numbers for each customer.
+- Each bucket has a colour dot and bar, matching the ageing colours on the Dashboard.
+- Empty buckets are greyed out.
+
+**Invoices table:**
+- Adds Total and Days late columns.
+- Status shows as coloured tags: Overdue, Paid, Part-paid and Disputed.
+- Rows use the same red and yellow backgrounds as the Invoices page.
+
+The change is all in [app/customers/[id]/page.tsx](app/customers/[id]/page.tsx). Press Ctrl+Shift+R if you don't see it.
+
+==============================================================================
+USER  (13 Oct 2026, 6:21 pm)
+==============================================================================
+increase font size of customers name
+
+--- CLAUDE ---
+  [Bash]
+The customer name at the top of the customer page is now 28px, bold and navy, so it stands out as the page title ([app/customers/[id]/page.tsx](app/customers/[id]/page.tsx)). I haven't looked at it in a browser; press Ctrl+Shift+R to see it.
+
+Most page titles look small because of the Tailwind setup, which resets headings to normal text size. "Follow-ups", "Invoices" and the invoice number on the invoice page are all affected. If you want the same, I can make all page titles larger in one place.
+
+If you meant the customer names in the **Customers list** table instead, tell me and I'll enlarge those.
+
+==============================================================================
+USER  (13 Oct 2026, 6:33 pm)
+==============================================================================
+[1 screenshot attached]
+make this all 5 boxes clickable and on click it should redirect to respective areas do it carefully
+
+--- CLAUDE ---
+I'll make each card a link that filters the page to exactly what the card counts, then scrolls to the matching table. Doing this carefully has two parts. "Customers needing a call today" needs its own filter, because none of the existing ones covers overdue + never contacted + due today together. And I'll make the card numbers respect the customer filter, so each number always matches the rows you land on.
+  [Read: app\follow-ups\page.tsx]
+  [Bash]
+  [Bash]
+  [Bash]
+The customer it picked for the second test has no follow-ups, so every count was 0 and that test proves little. I'll rerun with a customer that has follow-ups.
+  [Bash]
+  [Bash]
+All 5 cards on the Follow-ups page are now clickable. Each one filters the page and scrolls to the matching table. I checked every card on your running app, and the number on each card matched exactly what its link showed: for all customers, and again with a single customer selected.
+
+| Card | Clicking it | Checked on your data |
+|---|---|---|
+| Customers needing a call today | Shows overdue, never-contacted and due-today follow-ups, then scrolls to **Next follow-ups** | 7 customers → 7 shown |
+| Overdue follow-ups | Shows overdue and never-contacted follow-ups | 12 → 12 rows |
+| Due today | Shows due-today follow-ups | 1 → 1 row |
+| Upcoming | Shows upcoming follow-ups | 1 → 1 row |
+| Completed (last 7 days) | Scrolls to the **Completed follow-ups** table | 2 → 2 entries |
+
+**Details:**
+- **New filter:** "Customers needing a call today" didn't match any existing filter, so I added "Needs a call today" to the Follow-up status dropdown. The dropdown and the card always agree.
+- **Card numbers follow your filters:** if you pick a customer in the filter, the card numbers count only that customer. Before this, the cards always counted every customer while the table showed one, so the numbers wouldn't have matched after clicking.
+- **Your other filter choices are kept:** clicking a card keeps your selected customer and the "Completed in the last" period.
+- **How they look:** cards lift slightly with a shadow when you hover over them and show "View →". The card whose filter is active gets a navy border and shows "Showing below ↓". Reset clears everything as before.
+- Because the filter is in the page address, a filtered view can be bookmarked or shared.
+
+The changes are in [app/follow-ups/page.tsx](app/follow-ups/page.tsx), plus the card styles at the end of [app/globals.css](app/globals.css). Press Ctrl+Shift+R to see them.
+
+==============================================================================
+USER  (13 Oct 2026, 6:38 pm)
+==============================================================================
+[1 screenshot attached]
+do you hindi
+
+--- CLAUDE ---
+हाँ, मैं हिंदी समझ और बोल सकता हूँ। आप हिंदी, अंग्रेज़ी या Hinglish, जिसमें भी आसान लगे, लिख सकते हैं। मैं उसी भाषा में जवाब दूँगा।
+
+(Yes, I understand Hindi. Write in Hindi, English or Hinglish and I'll reply the same way.)
+
+आपने **Statements & reports** पेज का स्क्रीनशॉट भेजा है। उसमें क्या बदलाव चाहिए? मुझे इसमें एक बात दिखी:
+
+- Ageing table की पहली row में **"a · a"** नाम का customer है। उसके सारे amounts ₹0.00 हैं, तो शायद यह testing के दौरान गलती से बन गया था। आप चाहें तो इसे Customers पेज से Inactive कर सकते हैं, या मैं इस table में से inactive customers छुपा सकता हूँ।
+
+बताइए क्या करना है।
+
+==============================================================================
+USER  (13 Oct 2026, 6:39 pm)
+==============================================================================
+Isme ageing reports ka ek alag se leftside bar me add karo
+Dono mix dikh rahe 
+Kyuki statement scroll down karne k bad aa rahi
+[To alag tab ban jayega to dono separate ho jayege
+
+--- CLAUDE ---
+ठीक है, Ageing report को sidebar में एक अलग page बना देता हूँ। पहले मौजूदा Statements page का code देख लेता हूँ।
+  [Read: app\statement\page.tsx]
+अब मैं नया **Ageing report** page बनाता हूँ और Statement page से ageing table हटाता हूँ।
+  [Write: app\ageing\page.tsx]
+  [Bash]
+  [Bash]
+  [Bash]
+Ageing report अब sidebar में एक अलग page है, तो Ageing और Statement अब mix नहीं होंगे। मैंने दोनों pages चलती हुई app पर check किए, सब ठीक है। TypeScript check भी clean है।
+
+**Sidebar अब ऐसा है:** Dashboard, Customers, Invoices, Receipts, Follow-ups, **Ageing report** (नया), **Statements**
+
+**Ageing report page** ([app/ageing/page.tsx](app/ageing/page.tsx)):
+- सभी customers की ageing table: Not due, 1–30, 31–60, 61–90, 91–180, Over 180, Unapplied credit और Net balance।
+- **नीचे Total row जोड़ी है।** आपके data में total Net balance **₹14,51,700.00 Dr** है।
+- Customer के नाम पर click करने से उसकी profile खुलेगी।
+- हर row में **"Statement →"** link है, जिससे उस customer का statement सीधे खुल जाएगा।
+- **"Download ageing CSV"** button अब इसी page पर है।
+- **"Hide customers with zero balance"** checkbox जोड़ा है। इसे tick करके Apply करने पर "a · a" जैसे ₹0 वाले customers छुप जाते हैं, और 9 की जगह 7 customers दिखते हैं।
+
+**Statements page** ([app/statement/page.tsx](app/statement/page.tsx)):
+- Ageing table यहाँ से हटा दी है। अब इस page पर सिर्फ customer statement है।
+- Heading अब "Customer statement" है। Customer और period चुनकर **Open statement** दबाइए।
+- Customer नहीं चुना हो तो message दिखेगा: "Select a customer and period above, then click Open statement."
+
+Dashboard के ageing section का link भी अब "Open ageing report →" है और नए page पर जाता है।
+
+Changes देखने के लिए browser में Ctrl+Shift+R दबाइए।
+
+==============================================================================
+USER  (13 Oct 2026, 6:43 pm)
+==============================================================================
+[1 screenshot attached]
+at the top give global search
+
+--- CLAUDE ---
+I'll add a search box to the top header. It will show quick results in a dropdown as you type, and pressing Enter opens a full results page. First, the search logic in a separate file I can test:
+  [Write: lib\ar\search.ts]
+  [Write: app\api\search\route.ts]
+I loaded the data twice in that route, so I'll load it once:
+  [Edit: app\api\search\route.ts]
+  [Write: components\global-search.tsx]
+  [Write: app\search\page.tsx]
+Now I'll place the search box in the header between the company name and the date picker, and add its styles:
+  [Read: app\layout.tsx]
+  [Edit: app\layout.tsx]
+  [Bash]
+TypeScript and lint are clean. Now I'll add tests for the search logic and try real searches against your data.
+  [Write: lib\ar\search.test.ts]
+  [Bash]
+The global search is now in the top header, between "Brightwater Advisory" and the as-at date, styled like your example. It searches **customers, invoices, receipts and follow-ups**. I tried real searches on your data and they returned the right records, and all 41 tests pass, including 5 new ones for search. I haven't tried typing in it in a browser, so press Ctrl+Shift+R and give it a go.
+
+**How to use it:**
+- After 2 or more characters, a dropdown shows up to 5 matches of each type, grouped under headings. Each match has a short detail line.
+- Click a result, or use the ↑ ↓ keys and press Enter, to open it.
+- Press **Enter** without choosing a result, or click **"See all N results →"**, to open a full results page (`/search`).
+- Press **/** or **Ctrl+K** anywhere to jump to the search box. **Esc** closes the dropdown.
+
+**What you can search by:**
+
+| Type | Matches on | Opens |
+|---|---|---|
+| Customers | Name, code, contact person, email, phone, GSTIN, city | Customer page |
+| Invoices | Invoice number, customer, description, amount | Invoice page |
+| Receipts | Receipt number, UTR/reference, mode (NEFT etc.), customer, amount | That customer's statement, since there's no separate receipt page |
+| Follow-ups | Note text, type, customer, invoice number | The invoice, or the customer for general notes |
+
+- **Flexible matching:** case doesn't matter, and `88,500` and `88500` both work. With several words, every word must match, so `varandha neft` finds Varandha's NEFT receipts.
+- **Respects the as-at date:** documents dated after the selected as-at date aren't shown, the same as everywhere else in the app.
+
+**Examples from your data:**
+- "tamhini" → 12 results: the customer plus their invoices and receipts.
+- "0024" → BWA/26-27/0024.
+- "neha" → Tamhini Foods, through its contact person.
+- "NEFT" → 10 receipts.
+
+**New files:**
+- [components/global-search.tsx](components/global-search.tsx): the search box and dropdown.
+- [lib/ar/search.ts](lib/ar/search.ts): the matching rules.
+- [app/api/search/route.ts](app/api/search/route.ts): the quick results for the dropdown.
+- [app/search/page.tsx](app/search/page.tsx): the full results page.
+
+The box is added in [app/layout.tsx](app/layout.tsx), and its styles are at the end of [app/globals.css](app/globals.css).
+
+==============================================================================
+USER  (13 Oct 2026, 6:49 pm)
+==============================================================================
+read this readme file and tell me if the receipts section is made as requested or any changes is required and before making the changes please tell me whats missed
+
+# AR Manager
+
+**Build assignment · Verve Advisory**
+
+Build a working **AR Manager**: the tool an accounts receivable analyst at a services firm uses every day to see who owes the firm money, how late each payment is, and what to do about it.
+
+This repository is empty apart from this file. The sample data is already loaded in a shared database, ready for you to use (Part 3). You build everything else from scratch: the calculations, the screens and the deployment.
+
+**How this brief is weighted.** You already know receivables, so Part 1 states the business rules briefly, as a specification. Part 4, the technical build guide, is the long part. It prescribes the stack, how to work with the shared database, where the calculations live, testing and deployment, and walks you through setup one step at a time. You are expected to build with an AI coding assistant. The brief is written so that you can hand it to one section by section, but you remain responsible for every figure the tool shows.
+
+---
+
+## Contents
+
+- **Part 0**: The short version
+- **Part 1**: Business rules
+- **Part 2**: What to build
+- **Part 3**: The sample data and the shared database
+- **Part 4**: Technical build guide
+- **Part 5**: Build order
+- **Part 6**: Submitting, and how we evaluate
+
+---
+
+## Part 0: The short version
+
+| Area | What it does |
+|---|---|
+| **Customer Master** | Every customer, with their contact details and credit terms. Searchable. |
+| **Invoices** | Every invoice with its status (paid, due or overdue). Sortable and filterable. |
+| **Overdue at a glance** | Late invoices flagged in red, showing days late and amount outstanding, grouped into ageing buckets. |
+| **Actions** | Record a payment, add a note, and print or export a statement. |
+
+Your tool works on the sample data already loaded in the shared database (Part 3). Every amount the tool shows must be correct to the paisa **as at any date the user picks**. We will check your figures against our own calculation.
+
+**The stack is fixed:** Next.js (TypeScript) hosted on Vercel, working with the shared Supabase database. Part 4 explains why.
+
+---
+
+## Part 1: Business rules
+
+The seller is **Brightwater Advisory Pvt. Ltd.**, Baner, Pune 411045, **Maharashtra**, a fictional advisory firm. All amounts are in INR.
+
+Where an example uses a document number, it comes from the Part 3 sample data.
+
+### Documents and derived fields
+
+**R1. Records.** There are five kinds of record: customer, invoice, credit note, receipt (with its allocations) and note. Every figure the tool shows is calculated from these. **Never store a running balance or an "amount paid" field that you update in place.** The as-at rule (R10) makes that impossible to keep correct.
+
+**R2. Due date** = invoice date + the customer's `credit_days`, counted in calendar days. It is calculated and stored when the invoice is created. A later change to the customer's terms does not change existing invoices.
+
+**R3. GST.** The rate is 18%. If the customer's `state` is `Maharashtra`, charge CGST and SGST at half the rate each; otherwise charge IGST at the full rate. Round each component to 2 decimals, halves up. **Invoice total = taxable value + GST.** Once created, an invoice is not edited, apart from its description and its disputed flag.
+
+**R4. Numbering.** Numbers are per Indian financial year (April to March) and restart each 1 April. None is ever reused, including the numbers of cancelled invoices. Invoice numbers must be no longer than 16 characters (GST Rule 46).
+
+| Series | Format | Next number after the sample data |
+|---|---|---|
+| Invoice | `BWA/YY-YY/NNNN` | `BWA/26-27/0025` |
+| Credit note | `BWA/CN/YY-YY/NNN` | `BWA/CN/26-27/002` |
+| Receipt | `RCT/YY-YY/NNNN` | `RCT/26-27/0018` |
+
+FY 2025-26 invoices were carried over from the firm's old system and keep their original numbers.
+
+### Receipts and adjustments
+
+**R5. TDS counts as payment.** A receipt has a `bank_amount` and a `tds_amount`. Its **settlement value = bank + TDS**, and that is what settles invoices. The customer's `tds_rate_pct` (applied to the taxable value, not the total) only pre-fills the expected TDS. Always save what the customer actually deducted.
+
+**R6. Allocation.** An allocation links one receipt to one invoice of the **same customer**, and has its own `allocation_date`. The rules:
+
+- The allocations from one receipt cannot exceed its settlement value.
+- An invoice's allocations plus its credit notes cannot exceed its total.
+- Nothing can be allocated to a cancelled invoice.
+- The allocation date cannot be earlier than the receipt date or the invoice date.
+
+When a payment is being recorded, suggest allocating it oldest first, by due date and then invoice number; the user can change the suggestion. Anything not allocated remains **unapplied credit**, which can be allocated later. An allocation can be removed. A receipt with no allocations can be deleted.
+
+**R7. Credit notes** reduce a specific invoice from the credit note's date onwards. GST is calculated on the credit note's taxable value with the invoice's rate and split. The same limit as R6 applies: allocations plus credit notes cannot exceed the invoice total.
+
+**R8. Cancellation.** A cancelled invoice keeps its number, appears in the invoice list with the status Cancelled, and is left out of every total, balance, ageing figure, statement and DSO calculation. An invoice can be cancelled only if nothing has been allocated or credited against it.
+
+**R9. Customers.** Inactive customers cannot be given new invoices. A customer with any records cannot be deleted, only deactivated. When a new invoice would take a customer's net balance above its credit limit, **warn** the user but do not block them.
+
+### Positions as at a date
+
+**R10. As-at date.** Every screen respects an as-at date D, which defaults to today in Asia/Kolkata. Only records dated on or before D exist: invoices by `invoice_date`, receipts by `receipt_date`, credit notes by `credit_note_date`, allocations by `allocation_date`, and notes by `note_date`.
+
+**R11. Invoice position** as at D, for an invoice that is not cancelled and has `invoice_date ≤ D`:
+
+```
+received      = Σ allocations to the invoice with allocation_date ≤ D
+credited      = Σ credit-note totals against the invoice with credit_note_date ≤ D
+outstanding   = total − received − credited
+days_past_due = D − due_date
+status        = Paid     if outstanding = 0
+                Overdue  if outstanding > 0 and days_past_due ≥ 1
+                Due      otherwise          (an invoice is still "Due" on its due date)
+part-paid     = outstanding > 0 and received + credited > 0     (a label shown with the status)
+disputed      = the invoice's flag                               (a label; changes no amount)
+```
+
+**R12. Ageing buckets** are based on days past due (from the due date, not the invoice date), for invoices with an outstanding amount above zero:
+
+| Bucket | Days past due |
+|---|---|
+| Not due | 0 or fewer |
+| 1–30 | 1 to 30 |
+| 31–60 | 31 to 60 |
+| 61–90 | 61 to 90 |
+| 91–180 | 91 to 180 |
+| Over 180 | 181 or more |
+
+**R13. Customer position** as at D:
+
+- **Unapplied credit** = Σ settlement values of the customer's receipts dated ≤ D, minus Σ allocations from those receipts dated ≤ D.
+- **Net balance** = Σ invoice outstanding − unapplied credit. A negative figure is a credit balance, shown as **Cr**.
+- **Overdue** = Σ invoice outstanding − the Not due bucket.
+- **Over limit** when net balance > credit limit.
+
+Show unapplied credit in its own column. **Do not net it off against the oldest bucket.**
+
+**R14. The control check.** For every customer and every date, net balance (R13) must equal:
+
+```
+Σ totals of non-cancelled invoices dated ≤ D
+− Σ credit-note totals dated ≤ D
+− Σ receipt settlement values dated ≤ D
+```
+
+Build this check into your calculation module and run it in your tests (sections 4.7 and 4.14).
+
+**R15. Statement of account** for a customer from F to T:
+
+- **Opening balance** = the R14 balance as at F − 1.
+- **Lines:** each invoice is a debit of its total, each credit note a credit of its total, and each receipt a credit of its bank amount ("Payment received"). The TDS on a receipt is a separate credit line ("TDS deducted by you"), included only when TDS is above zero.
+- **Order:** by date. Lines on the same date go invoices, then credit notes, then receipts, then TDS lines, then by document number.
+- **Running balance**, and a **closing balance** that equals the R14 balance as at T.
+- **Left out:** cancelled invoices, allocations and notes.
+- **Footer:** the closing balance by ageing bucket, and any unapplied credit.
+
+**R16. Notes.** Each note has a date, customer, optional invoice, a type (Call, Email, Meeting or Note), the text, an optional follow-up date (with a done flag), and an optional promise to pay (a date and amount, both or neither).
+
+- **Follow-ups due** as at D: notes with `follow_up_date ≤ D` that are not marked done.
+- **Promise status** as at D (only notes with `note_date ≤ D` are considered):
+
+| Status | Condition |
+|---|---|
+| **Kept** | Σ settlement values of the customer's receipts dated from `note_date` to `min(promise_date, D)` ≥ `promise_amount` |
+| **Broken** | Not kept, and `promise_date < D` |
+| **Pending** | Otherwise |
+
+**R17. DSO** as at D, rounded to the nearest whole day:
+
+```
+DSO = Σ invoice outstanding (before unapplied credit) ÷ S × 90
+
+S   = Σ totals of non-cancelled invoices dated D−89 … D
+    − Σ credit-note totals dated in the same window
+```
+
+When S = 0, show "—".
+
+**R18. Formats.** Show amounts as `₹1,23,456.00` (Indian digit grouping) and dates as `31-Aug-2026`. Balances carry a `Dr` or `Cr` suffix.
+
+### Spot checks
+
+Use these to test your build as you go. The full set of checks we evaluate with is not published.
+
+| # | Check | Expected |
+|---|---|---|
+| 1 | BWA/26-27/0001 (C001, Maharashtra) | CGST 6,750.00 + SGST 6,750.00, total 88,500.00, due 05-May-2026 |
+| 2 | BWA/26-27/0002 (C007, Telangana) | IGST 63,000.00, total 4,13,000.00 |
+| 3 | BWA/26-27/0003 as at 31-Aug-2026 | Outstanding 69,600.00, Overdue · part-paid, 90 days late, bucket **61–90** |
+| 4 | BWA/26-27/0021 as at 31-Aug / 06-Sep / 15-Sep-2026 | Due 88,500.00 / Overdue 2 days, 88,500.00 / Paid |
+| 5 | C005 as at 31-Aug-2026 | Outstanding 1,88,800.00, unapplied 1,00,000.00, net 88,800.00 Dr |
+| 6 | C005 as at 12-Jul-2026 | Net 1,00,000.00 **Cr** (advance received, invoice not yet raised) |
+| 7 | BWA/26-27/0007 as at 31-Aug-2026 | Outstanding 3,000.00 (credit note 29,500.00; receipt 2,40,000.00 + 22,500.00 TDS) |
+| 8 | Statement C002, 01-Apr-2026 to 31-Aug-2026 | Opening 70,800.00 Dr, closing 2,23,000.00 Dr, 7 lines |
+| 9 | Promise noted by C002 on 20-Jul-2026, as at 31-Aug-2026 | Broken |
+| 10 | Control check (R14), any date | No differences for any customer |
+
+---
+
+## Part 2: What to build
+
+**Across the app:**
+
+- An **as-at date picker** in the header, defaulting to today in India. Keep the date in the URL (`?asof=2026-08-31`) so views can be bookmarked and shared.
+- Navigation between the four areas.
+
+**Customer Master** (`/customers`, `/customers/new`, `/customers/[id]`, `/customers/[id]/edit`)
+
+- **List:** code, name, city and state, contact person, credit days, credit limit, balance and overdue amount as at D, percentage of the credit limit used, and status. Search by code, name, contact or email. Filter active or inactive. Sort by any column.
+- **Add and edit**, with validation: required fields, a unique code, a valid email, credit days ≥ 0, a credit limit ≥ 0, and a TDS rate from 0 to 100. A 15-character GSTIN is optional.
+- **Deactivate and reactivate** (R9).
+- **Customer page:** profile, balance with a one-line ageing breakdown, over-limit warning, invoices, receipts with any unapplied credit, a timeline of notes, and quick actions.
+
+**Invoices** (`/invoices`, `/invoices/new`, `/invoices/[id]`)
+
+- **List**, as at D: number, customer, invoice date, due date, total, received, credited, outstanding, status, days late, and the part-paid and disputed labels.
+- **Filter** by customer, status (including Cancelled), disputed and date range. Search by number. Sort by any column. Show a totals row for the filtered list.
+- **Create:** choose an active customer, then enter the date, description, taxable value and GST rate. Before saving, preview the tax split, total, due date and next number, and show the credit-limit warning (R9).
+- **Invoice page:** tax breakdown, allocations, credit notes, notes and outstanding as at D. Actions: raise a credit note, set or clear the disputed flag, and cancel (R8).
+
+**Overdue at a glance** (`/`, the home screen)
+
+- **Summary figures** as at D: total outstanding on invoices, unapplied credit, net receivable, overdue amount (and its percentage of total outstanding), DSO, and the number of overdue invoices.
+- **Ageing by customer** with a totals row and click-through to the underlying invoices.
+- **Overdue invoices:** red rows, sorted by days late with the longest first, showing the disputed label.
+- **Needs attention:** customers over their limit, broken promises, follow-ups due, and unapplied credit waiting to be allocated.
+
+**Actions**
+
+1. **Record a payment** (`/receipts/new`). Enter the customer, date, bank amount, TDS (pre-filled), mode (NEFT, RTGS, IMPS, UPI or Cheque) and reference. The form shows the customer's open invoices with an oldest-first suggestion the user can edit, and the amount that will remain unapplied. The receipt and its allocations are saved together: if the allocations cannot be saved, the receipt is not kept either (section 4.8).
+2. **Allocate unapplied credit** from the customer page, with an allocation date.
+3. **Raise a credit note** from the invoice page.
+4. **Add a note**, and mark follow-ups as done.
+5. **Statement of account** (`/statement?customer=…&from=…&to=…`). Show it on screen, with **print** (a clean A4 layout) and **CSV export**.
+6. **CSV export** of the invoice list and the ageing report.
+7. **Corrections:** remove an allocation, delete a receipt that has no allocations, and cancel an invoice.
+
+**Not in scope:** other currencies, GST returns or e-invoicing, sending email, provisioning or write-offs, user roles, and editing the seller's details.
+
+---
+
+## Part 3: The sample data and the shared database
+
+All companies, people and amounts are fictional. The seller is **Brightwater Advisory Pvt. Ltd.**, Baner, Pune 411045, **Maharashtra**.
+
+The sample data is **already loaded** in a shared **Supabase** database: a hosted PostgreSQL database that comes with a ready-made web API. You do not create a database, tables or any data. The schema is fixed and is the same for every candidate. Every record in the sample data is there for a reason.
+
+### 3.1 Connection details
+
+| | |
+|---|---|
+| **Project URL** | `https://jxllwhrinqlzvydzrscs.supabase.co` |
+| **API key** (anon) | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4bGx3aHJpbnFsenZ5ZHpyc2NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NDU2ODQsImV4cCI6MjEwNTMyMTY4NH0.a6878sV1NRsNWpT32z9pty0lB4SQB-ofQI2yxogSwTg` |
+
+This key is public by design. It can reach only your own workspace (section 3.2).
+
+### 3.2 Your workspace: your own copy of the data
+
+Every candidate works on a private copy of the sample data, called a **workspace**, so no one can see or change anyone else's work.
+
+**1. Create your workspace, once**, with your full name. In a terminal (macOS or Linux; on Windows, use Git Bash):
+
+```bash
+export SUPABASE_URL=https://jxllwhrinqlzvydzrscs.supabase.co
+export SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4bGx3aHJpbnFsenZ5ZHpyc2NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NDU2ODQsImV4cCI6MjEwNTMyMTY4NH0.a6878sV1NRsNWpT32z9pty0lB4SQB-ofQI2yxogSwTg
+
+curl -X POST "$SUPABASE_URL/rest/v1/rpc/create_workspace" \
+  -H "apikey: $SUPABASE_ANON_KEY" -H "Content-Type: application/json" \
+  -d '{"p_label": "Your Full Name"}'
+```
+
+It returns your **workspace id**, a value like `"3f2b8c1e-…"`. Keep it, and do not share it with anyone.
+
+**2. Every request sends it** in an `x-workspace` header. The client in section 4.5 does this for you. Without the header, every request fails with *"Missing x-workspace header"*.
+
+**3. Reset whenever you like.** Resetting deletes everything in your workspace and reloads the original sample data:
+
+```bash
+curl -X POST "$SUPABASE_URL/rest/v1/rpc/reset_workspace" \
+  -H "apikey: $SUPABASE_ANON_KEY" -H "x-workspace: YOUR-WORKSPACE-ID" \
+  -H "Content-Type: application/json" -d '{}'
+```
+
+Reset before checking your figures against the spot checks, because payments and invoices you create while testing change the figures.
+
+### 3.3 The tables
+
+Every table also has an `id` (a number the database assigns), a `workspace_id` (filled in automatically: never send it) and a `created_at` timestamp.
+
+| Table | Columns |
+|---|---|
+| `customers` | `code`, `name`, `city`, `state`, `contact_person`, `email`, `phone`, `gstin`, `credit_days`, `credit_limit`, `tds_rate_pct`, `is_active` |
+| `invoices` | `invoice_no`, `customer_id` (→ `customers.id`), `invoice_date`, `due_date`, `description`, `taxable_value`, `gst_rate_pct`, `cgst`, `sgst`, `igst`, `total`, `is_cancelled`, `is_disputed` |
+| `credit_notes` | `credit_note_no`, `invoice_id` (→ `invoices.id`), `credit_note_date`, `taxable_value`, `cgst`, `sgst`, `igst`, `total`, `reason` |
+| `receipts` | `receipt_no`, `customer_id`, `receipt_date`, `bank_amount`, `tds_amount`, `mode` (`NEFT`, `RTGS`, `IMPS`, `UPI` or `Cheque`), `reference` |
+| `allocations` | `receipt_id` (→ `receipts.id`), `invoice_id`, `allocation_date`, `amount` |
+| `notes` | `customer_id`, `invoice_id` (optional), `note_date`, `note_type` (`Call`, `Email`, `Meeting` or `Note`), `body`, `follow_up_date`, `follow_up_done`, `promise_date`, `promise_amount` |
+
+**Stored, not calculated:** `due_date`, `cgst`, `sgst`, `igst` and `total` are stored on each invoice and credit note. They are already filled in for the sample data. When your tool creates an invoice or a credit note, it must calculate these values (R2, R3, R7) and send them.
+
+### 3.4 What the database does, and what it does not
+
+**It rejects data that would corrupt your workspace:**
+
+- an invoice or credit note whose total is not its taxable value plus GST, or that mixes IGST with CGST and SGST,
+- editing an invoice after it has been created (only `description` and `is_disputed` can change),
+- cancelling an invoice that has payments or credit notes against it, or reinstating a cancelled one,
+- deleting a customer, invoice or credit note,
+- any allocation that breaks R6,
+- a credit note larger than what is outstanding on its invoice,
+- deleting a receipt that still has allocations,
+- reusing a document number.
+
+A rejected request returns an error with a `message` explaining why. **Treat the database as a safety net, not as your validation.** Your tool should check input before saving it (section 4.8) and explain any problem in plain language.
+
+**It calculates nothing.** Every figure in R10 to R17, and the next document numbers, is for your code to work out (section 4.7). You cannot create tables, database functions or triggers.
+
+### 3.5 The same data as CSV, for reference
+
+This is the data every workspace starts with. The CSVs leave out due dates, GST amounts and totals, which the database stores (section 3.3).
+
+Dates are in `YYYY-MM-DD` format. Amounts are in rupees with 2 decimal places.
+
+#### customers.csv
+
+```csv
+customer_code,name,city,state,contact_person,email,credit_days,credit_limit,tds_rate_pct,is_active
+C001,Tamhini Foods Pvt. Ltd.,Pune,Maharashtra,Neha Joshi,accounts@tamhinifoods.example,30,500000.00,10,yes
+C002,Varandha Freight LLP,Mumbai,Maharashtra,Rohan Kulkarni,payables@varandhafreight.example,45,300000.00,10,yes
+C003,Kundalika Castings Pvt. Ltd.,Bengaluru,Karnataka,Suresh Rao,finance@kundalikacastings.example,30,400000.00,10,yes
+C004,Pawana Healthcare Pvt. Ltd.,Pune,Maharashtra,Dr. Anita Deshpande,ap@pawanahealth.example,60,600000.00,10,yes
+C005,Sabarmati Retail Ventures Pvt. Ltd.,Ahmedabad,Gujarat,Kiran Patel,accounts@sabarmatiretail.example,30,250000.00,10,yes
+C006,Mulshi Agro Producers,Pune,Maharashtra,Ganesh Pawar,mulshiagro@example.com,15,100000.00,0,yes
+C007,Krishnaveni Infra Projects Ltd.,Hyderabad,Telangana,Lakshmi Reddy,ap@krishnaveniinfra.example,45,800000.00,10,yes
+C008,Kamshet Hospitality Pvt. Ltd.,Lonavala,Maharashtra,Farhan Shaikh,accounts@kamshethospitality.example,30,200000.00,10,no
+```
+
+#### invoices.csv
+
+```csv
+invoice_no,customer_code,invoice_date,description,taxable_value,gst_rate_pct,is_cancelled,is_disputed
+BWA/25-26/0141,C003,2026-01-20,"Cost audit support, Q3",150000.00,18,no,no
+BWA/25-26/0156,C003,2026-02-25,Inventory valuation review,90000.00,18,no,no
+BWA/25-26/0162,C002,2026-03-10,GST annual return filing,60000.00,18,no,no
+BWA/25-26/0170,C004,2026-03-28,"Internal audit, H2 FY25-26",200000.00,18,no,no
+BWA/25-26/0171,C008,2026-03-30,Tax audit report,45000.00,18,no,no
+BWA/26-27/0001,C001,2026-04-05,"Monthly accounting retainer, Apr",75000.00,18,no,no
+BWA/26-27/0002,C007,2026-04-10,"Project finance model, phase 1",350000.00,18,no,no
+BWA/26-27/0003,C002,2026-04-18,Transfer pricing documentation,120000.00,18,no,no
+BWA/26-27/0004,C003,2026-04-25,Costing system redesign,110000.00,18,no,no
+BWA/26-27/0005,C006,2026-04-28,"Bookkeeping, Q4 FY25-26",25000.00,18,no,no
+BWA/26-27/0006,C001,2026-05-05,"Monthly accounting retainer, May",75000.00,18,no,no
+BWA/26-27/0007,C004,2026-05-12,Hospital billing process audit,250000.00,18,no,no
+BWA/26-27/0008,C007,2026-05-15,"Project finance model, phase 2",180000.00,18,no,no
+BWA/26-27/0009,C002,2026-05-22,Customs duty refund advisory,80000.00,18,no,no
+BWA/26-27/0010,C004,2026-06-01,Finance team workshop,40000.00,18,no,yes
+BWA/26-27/0011,C001,2026-06-05,"Monthly accounting retainer, Jun",75000.00,18,no,no
+BWA/26-27/0012,C006,2026-06-15,"Bookkeeping, Q1 FY26-27",25000.00,18,no,no
+BWA/26-27/0013,C003,2026-06-28,Plant-wise profitability MIS,70000.00,18,no,no
+BWA/26-27/0014,C007,2026-07-01,Lender due diligence (raised in error),200000.00,18,yes,no
+BWA/26-27/0015,C007,2026-07-02,Lender due diligence,400000.00,18,no,no
+BWA/26-27/0016,C001,2026-07-05,"Monthly accounting retainer, Jul",75000.00,18,no,no
+BWA/26-27/0017,C005,2026-07-15,Store-level P&L setup,100000.00,18,no,no
+BWA/26-27/0018,C002,2026-07-20,Freight cost benchmarking,50000.00,18,no,no
+BWA/26-27/0019,C004,2026-07-30,Revenue cycle review,300000.00,18,no,no
+BWA/26-27/0020,C006,2026-08-01,"Bookkeeping, Jul",30000.00,18,no,no
+BWA/26-27/0021,C001,2026-08-05,"Monthly accounting retainer, Aug",75000.00,18,no,no
+BWA/26-27/0022,C005,2026-08-20,Inventory shrinkage study,60000.00,18,no,no
+BWA/26-27/0023,C007,2026-08-25,Lenders' engineer liaison,220000.00,18,no,no
+BWA/26-27/0024,C001,2026-09-05,"Monthly accounting retainer, Sep",75000.00,18,no,no
+```
+
+#### credit_notes.csv
+
+```csv
+credit_note_no,invoice_no,credit_note_date,taxable_value,reason
+BWA/CN/26-27/001,BWA/26-27/0007,2026-07-25,25000.00,Scope reduced: one hospital unit dropped from audit
+```
+
+#### receipts.csv
+
+```csv
+receipt_no,customer_code,receipt_date,bank_amount,tds_amount,mode,reference
+RCT/26-27/0001,C008,2026-04-25,48600.00,4500.00,NEFT,UTR 0425-7781
+RCT/26-27/0002,C003,2026-04-30,40000.00,9000.00,RTGS,UTR 0430-1102
+RCT/26-27/0003,C001,2026-05-03,81000.00,7500.00,NEFT,UTR 0503-3310
+RCT/26-27/0004,C006,2026-05-10,29500.00,0.00,UPI,UPI 0510-8842
+RCT/26-27/0005,C002,2026-05-20,64800.00,6000.00,NEFT,UTR 0520-4471
+RCT/26-27/0006,C001,2026-06-02,81000.00,7500.00,NEFT,UTR 0602-3316
+RCT/26-27/0007,C002,2026-06-15,60000.00,12000.00,NEFT,UTR 0615-4490
+RCT/26-27/0008,C004,2026-06-20,216000.00,20000.00,RTGS,UTR 0620-9021
+RCT/26-27/0009,C007,2026-06-25,572400.00,53000.00,RTGS,UTR 0625-6650
+RCT/26-27/0010,C001,2026-07-08,81000.00,7500.00,NEFT,UTR 0708-3321
+RCT/26-27/0011,C005,2026-07-10,90000.00,10000.00,NEFT,UTR 0710-5503
+RCT/26-27/0012,C006,2026-07-20,29500.00,0.00,Cheque,Chq 004512
+RCT/26-27/0013,C004,2026-08-14,240000.00,22500.00,RTGS,UTR 0814-9077
+RCT/26-27/0014,C001,2026-08-20,81000.00,7500.00,NEFT,UTR 0820-3334
+RCT/26-27/0015,C007,2026-09-08,432000.00,40000.00,RTGS,UTR 0908-6681
+RCT/26-27/0016,C002,2026-09-09,86400.00,8000.00,NEFT,UTR 0909-4512
+RCT/26-27/0017,C001,2026-09-10,81000.00,7500.00,NEFT,UTR 0910-3340
+```
+
+#### allocations.csv
+
+```csv
+receipt_no,invoice_no,allocation_date,amount
+RCT/26-27/0001,BWA/25-26/0171,2026-04-25,53100.00
+RCT/26-27/0002,BWA/25-26/0156,2026-04-30,49000.00
+RCT/26-27/0003,BWA/26-27/0001,2026-05-03,88500.00
+RCT/26-27/0004,BWA/26-27/0005,2026-05-10,29500.00
+RCT/26-27/0005,BWA/25-26/0162,2026-05-20,70800.00
+RCT/26-27/0006,BWA/26-27/0006,2026-06-02,88500.00
+RCT/26-27/0007,BWA/26-27/0003,2026-06-15,72000.00
+RCT/26-27/0008,BWA/25-26/0170,2026-06-20,236000.00
+RCT/26-27/0009,BWA/26-27/0002,2026-06-25,413000.00
+RCT/26-27/0009,BWA/26-27/0008,2026-06-25,212400.00
+RCT/26-27/0010,BWA/26-27/0011,2026-07-08,88500.00
+RCT/26-27/0012,BWA/26-27/0012,2026-07-20,29500.00
+RCT/26-27/0013,BWA/26-27/0007,2026-08-14,262500.00
+RCT/26-27/0014,BWA/26-27/0016,2026-08-20,88500.00
+RCT/26-27/0011,BWA/26-27/0017,2026-09-05,100000.00
+RCT/26-27/0015,BWA/26-27/0015,2026-09-08,472000.00
+RCT/26-27/0016,BWA/26-27/0009,2026-09-09,94400.00
+RCT/26-27/0017,BWA/26-27/0021,2026-09-10,88500.00
+```
+
+#### notes.csv
+
+Every follow-up in this file is still open (not marked as done).
+
+```csv
+note_date,customer_code,invoice_no,type,text,follow_up_date,promise_date,promise_amount
+2026-07-10,C005,,Note,Advance received before the engagement started. Allocate it once the invoice is raised.,,,
+2026-07-20,C002,BWA/26-27/0003,Call,Spoke to Rohan in payables. Balance of this invoice promised by 1 Aug.,,2026-08-01,69600.00
+2026-07-26,C004,BWA/26-27/0010,Email,Customer disputes the workshop invoice: says the second session was not delivered. Hold reminders until resolved.,2026-09-10,,
+2026-08-10,C003,,Meeting,CFO cites a cash crunch. Will clear both FY 25-26 invoices by 30 Sep.,2026-09-15,2026-09-30,234200.00
+2026-08-20,C004,BWA/26-27/0007,Call,"Receipt of 14 Aug is Rs 3,000 short. Customer says bank charges; asked them to pay the difference.",2026-09-05,,
+2026-08-25,C006,BWA/26-27/0020,Call,Reminder given. They will pay after their harvest sale proceeds arrive.,2026-09-01,,
+2026-09-02,C002,BWA/26-27/0009,Email,Accounts confirmed payment of this invoice by 10 Sep.,,2026-09-10,94400.00
+```
+
+---
+
+## Part 4: Technical build guide
+
+### 4.1 The stack (fixed)
+
+| Layer | Use | Why |
+|---|---|---|
+| Web framework | **Next.js** (latest, App Router) with **TypeScript** | Screens and server-side code in one project. TypeScript catches mistakes before they reach the screen. |
+| Styling | **Tailwind CSS** | Clean layouts without writing separate CSS files. |
+| Data | **The shared Supabase database** (Part 3), through `@supabase/supabase-js` | Already loaded with the sample data, and each candidate's workspace is kept separate. |
+| Hosting | **Vercel** | Deploys automatically each time you push to GitHub. |
+| Tests | **Vitest** | A fast test runner for TypeScript. |
+| Validation | **zod** | Checks form input on the server before anything is saved. |
+
+Everything above is free. Do not add another database, an ORM or a state library unless you can explain why you needed it. **No login is needed:** the data is fictional, and your workspace id keeps your copy private.
+
+### 4.2 Accounts and tools
+
+Create free accounts on **GitHub** and **Vercel** (sign in to Vercel with GitHub). You do **not** need a Supabase account.
+
+Install:
+
+- **Node.js**, the current LTS release, from nodejs.org. Check it with `node -v`.
+- **Git**. Check it with `git --version`. On first use, set your identity so your commits are credited to you:
+  ```bash
+  git config --global user.name "Your Name"
+  git config --global user.email "you@example.com"
+  ```
+- **VS Code**, and the AI coding assistant of your choice.
+
+### 4.3 How the pieces fit
+
+```
+ Browser ──► Next.js on Vercel ──────────────────────────────► Supabase (shared)
+             • pages (server components) load the data          • six tables, your workspace only
+             • lib/ar/ does every financial calculation         • rejects writes that would corrupt data
+             • server actions validate, then save               • calculates nothing
+```
+
+**The one architectural rule: every financial calculation lives in one TypeScript module, `lib/ar/`, as plain functions that work in whole paise.** Screens never calculate anything. They call `lib/ar` and display what it returns. The reasons:
+
+- **One source of truth.** The dashboard, customer page, invoice list and statement all call the same functions, so their figures cannot disagree.
+- **Testable.** Plain functions run in Vitest in milliseconds without a network, so you can check every day of the year, not just a few (section 4.14).
+- **Exact.** Whole paise are integers, and JavaScript adds integers exactly. It does not add rupee decimals exactly: `0.1 + 0.2 === 0.30000000000000004`.
+
+If you find yourself adding up amounts inside a component, stop and move that calculation into `lib/ar`.
+
+**Talk to Supabase only from the server** (server components, server actions and route handlers), never from the browser. Your workspace id then never reaches the browser, and every database call goes through one client (section 4.5).
+
+### 4.4 Setting up the project, step by step
+
+**1. Clone this repository and open it in VS Code.**
+
+**2. Move this brief out of the way.** `create-next-app` refuses to run in a folder that contains a `README.md`, but it accepts a `docs` folder:
+```bash
+mkdir docs
+git mv README.md docs/BRIEF.md
+git commit -m "Move brief to docs/BRIEF.md"
+```
+
+**3. Create the Next.js app in the current folder** (note the `.` at the end of the first line):
+```bash
+npx create-next-app@latest . --ts --tailwind --eslint --app --no-src-dir --import-alias "@/*" --use-npm
+```
+Accept the default answer to any further questions. Then check that it runs:
+```bash
+npm run dev          # then open http://localhost:3000
+```
+
+**4. Install the libraries:**
+```bash
+npm install @supabase/supabase-js zod server-only
+npm install -D vitest
+```
+Add `"test": "vitest run"` to the `scripts` section of `package.json`.
+
+**5. Create your workspace** with the `curl` command in section 3.2, and copy the id it returns.
+
+**6. Create `.env.local`** in the project root:
+```dotenv
+SUPABASE_URL=https://jxllwhrinqlzvydzrscs.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4bGx3aHJpbnFsenZ5ZHpyc2NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NDU2ODQsImV4cCI6MjEwNTMyMTY4NH0.a6878sV1NRsNWpT32z9pty0lB4SQB-ofQI2yxogSwTg
+AR_WORKSPACE_ID=your-workspace-id
+```
+None of these names start with `NEXT_PUBLIC_`, so Next.js keeps them on the server. Run `git status` and confirm `.env.local` is **not** listed. The `.gitignore` that `create-next-app` generates already excludes it.
+
+**7. Connect.** Create `lib/db.ts` (section 4.5), then temporarily make `app/page.tsx` list the customers. When 8 customers appear at `http://localhost:3000`, the connection works.
+
+**8. Commit and push.** Then deploy (section 4.16). Deploy early and keep deploying: a broken deployment is far easier to fix on day one than on the last day.
+
+### 4.5 Connecting and loading the data
+
+**The client** (`lib/db.ts`). This is the only place that talks to Supabase:
+
+```ts
+import 'server-only';
+import { createClient } from '@supabase/supabase-js';
+
+export const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
+  auth: { persistSession: false },
+  global: { headers: { 'x-workspace': process.env.AR_WORKSPACE_ID! } },
+});
+```
+
+`server-only` makes the build fail if a browser component ever imports this file.
+
+**Types** (`lib/ar/types.ts`). Inside your app, use camelCase names, and store every amount as whole paise:
+
+```ts
+export type Paise = number; // whole paise: ₹88,500.00 is 8850000
+
+export interface Invoice {
+  id: number; invoiceNo: string; customerId: number;
+  invoiceDate: string; dueDate: string; total: Paise;
+  isCancelled: boolean; isDisputed: boolean;
+}
+export interface Allocation { id: number; receiptId: number; invoiceId: number; allocationDate: string; amount: Paise }
+export interface CreditNote { id: number; invoiceId: number; creditNoteDate: string; total: Paise }
+
+export interface ArData {
+  invoices: Invoice[];
+  allocations: Allocation[];
+  creditNotes: CreditNote[];
+  // customers, receipts, notes: define these the same way
+}
+```
+
+**The loader** (`lib/ar/load.ts`). The data set is small (under a hundred rows, plus whatever you add), so **load all six tables on every request and calculate in memory**. Do not try to calculate inside database queries. The loader converts each amount to paise once, as it arrives:
+
+```ts
+import 'server-only';
+import { db } from '@/lib/db';
+import type { ArData } from './types';
+
+const paise = (rupees: number) => Math.round(rupees * 100);
+
+export async function loadArData(): Promise<ArData> {
+  const [inv, alloc, cn] = await Promise.all([
+    db.from('invoices').select('*'),
+    db.from('allocations').select('*'),
+    db.from('credit_notes').select('*'),
+    // …and customers, receipts, notes
+  ]);
+  for (const r of [inv, alloc, cn]) if (r.error) throw new Error(r.error.message);
+
+  return {
+    invoices: inv.data!.map((r) => ({
+      id: r.id, invoiceNo: r.invoice_no, customerId: r.customer_id,
+      invoiceDate: r.invoice_date, dueDate: r.due_date, total: paise(r.total),
+      isCancelled: r.is_cancelled, isDisputed: r.is_disputed,
+    })),
+    allocations: alloc.data!.map((r) => ({
+      id: r.id, receiptId: r.receipt_id, invoiceId: r.invoice_id,
+      allocationDate: r.allocation_date, amount: paise(r.amount),
+    })),
+    creditNotes: cn.data!.map((r) => ({
+      id: r.id, invoiceId: r.invoice_id, creditNoteDate: r.credit_note_date, total: paise(r.total),
+    })),
+  };
+}
+```
+
+Complete the loader and types for `customers`, `receipts` and `notes` in the same way.
+
+### 4.6 What you cannot change
+
+The database schema is fixed. There are no migrations in this project, no SQL to write, and no tables, database functions or login to create. If your AI assistant suggests any of these, it has misread the brief.
+
+When the database rejects a write (section 3.4), `supabase-js` returns an `error` whose `message` says why, for example *"Invoice BWA/26-27/0007 has only 3000.00 outstanding."* Show that message to the user rather than a generic failure. A few messages come from constraints, for example `violates check constraint "total_equals_taxable_plus_gst"`. Translate those into plain language.
+
+### 4.7 The calculation module (`lib/ar/`)
+
+These functions implement R2 to R17. Each takes the loaded `ArData`, and where relevant the as-at date as a `'YYYY-MM-DD'` string, and returns plain objects that the screens display.
+
+| Function | Returns |
+|---|---|
+| `invoicePositions(data, asOf)` | One entry per live invoice: `received`, `credited`, `outstanding`, `daysPastDue`, `status`, `isPartPaid`, `bucket` (R11, R12) |
+| `receiptPositions(data, asOf)` | One entry per receipt dated on or before `asOf`: `settlement`, `allocated`, `unapplied` |
+| `customerPositions(data, asOf)` | One entry per customer: the six buckets, `outstanding`, `unapplied`, `netBalance`, `overdue`, `overLimit` (R13) |
+| `balanceByDocuments(data, customerId, asOf)` | The R14 formula |
+| `balanceCheck(data, asOf)` | Only the customers whose `netBalance` differs from `balanceByDocuments`. **It must always return an empty list.** |
+| `statement(data, customerId, from, to)` | Opening balance, lines with a running balance, and closing balance (R15) |
+| `promiseStatuses(data, asOf)` | Each promise to pay with its status (R16) |
+| `followUpsDue(data, asOf)` | Open follow-ups dated on or before `asOf` (R16) |
+| `dso(data, asOf)` | A number of days, or `null` when there are no sales in the window (R17) |
+| `dueDate(invoiceDate, creditDays)` | `'YYYY-MM-DD'` (R2) |
+| `gstSplit(state, taxable, ratePct)` | `{ cgst, sgst, igst }` in paise (R3) |
+| `fyLabel(date)`, `nextNumber(series, data, date)` | Document numbers (R4) |
+
+Write the rest following the pattern of `invoicePositions`, which is given here in full (`lib/ar/positions.ts`). `customerPositions` builds on it by adding up its entries per customer:
+
+```ts
+import type { ArData, Invoice, Paise } from './types';
+
+export type Bucket = 'Not due' | '1-30' | '31-60' | '61-90' | '91-180' | 'Over 180';
+
+export interface InvoicePosition {
+  invoice: Invoice;
+  received: Paise;
+  credited: Paise;
+  outstanding: Paise;
+  daysPastDue: number;
+  status: 'Paid' | 'Due' | 'Overdue';
+  isPartPaid: boolean;
+  bucket: Bucket | null;
+}
+
+/** Whole days from one 'YYYY-MM-DD' date to another. Never uses local time. */
+export function daysBetween(from: string, to: string): number {
+  const [y1, m1, d1] = from.split('-').map(Number);
+  const [y2, m2, d2] = to.split('-').map(Number);
+  return (Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000;
+}
+
+export function bucketFor(daysPastDue: number): Bucket {
+  if (daysPastDue <= 0) return 'Not due';
+  if (daysPastDue <= 30) return '1-30';
+  if (daysPastDue <= 60) return '31-60';
+  if (daysPastDue <= 90) return '61-90';
+  if (daysPastDue <= 180) return '91-180';
+  return 'Over 180';
+}
+
+/** R11 + R12: the position of every live invoice at the end of asOf ('YYYY-MM-DD'). */
+export function invoicePositions(data: ArData, asOf: string): InvoicePosition[] {
+  const received = new Map<number, Paise>();
+  for (const a of data.allocations) {
+    if (a.allocationDate <= asOf) received.set(a.invoiceId, (received.get(a.invoiceId) ?? 0) + a.amount);
+  }
+  const credited = new Map<number, Paise>();
+  for (const c of data.creditNotes) {
+    if (c.creditNoteDate <= asOf) credited.set(c.invoiceId, (credited.get(c.invoiceId) ?? 0) + c.total);
+  }
+  return data.invoices
+    .filter((i) => !i.isCancelled && i.invoiceDate <= asOf)
+    .map((i) => {
+      const rec = received.get(i.id) ?? 0;
+      const cred = credited.get(i.id) ?? 0;
+      const outstanding = i.total - rec - cred;
+      const daysPastDue = daysBetween(i.dueDate, asOf);
+      return {
+        invoice: i,
+        received: rec,
+        credited: cred,
+        outstanding,
+        daysPastDue,
+        status: outstanding === 0 ? 'Paid' : daysPastDue >= 1 ? 'Overdue' : 'Due',
+        isPartPaid: outstanding > 0 && rec + cred > 0,
+        bucket: outstanding === 0 ? null : bucketFor(daysPastDue),
+      };
+    });
+}
+```
+
+A few points about the pattern:
+
+- `'YYYY-MM-DD'` strings compare correctly as plain text, so `a.allocationDate <= asOf` **is** the as-at rule (R10). Every date filter in the module works this way.
+- `daysBetween` uses `Date.UTC`, so the day count never depends on the time zone of the machine it runs on.
+- Every amount is whole paise, so the additions are exact.
+- For `gstSplit`, `Math.round(taxablePaise * ratePct / 200)` gives each of CGST and SGST in paise, with halves rounded up.
+
+### 4.8 Saving data (server actions)
+
+Every form submits to a server action that follows the same four steps:
+
+1. **Validate** the input with zod.
+2. **Check the business rules** with `lib/ar`, before touching the database. For example, confirm an allocation is no more than the invoice's outstanding amount, and tell the user how much is left.
+3. **Write** with `db.from('…').insert(…)` or `.update(…)`. Send amounts in rupees (`paise / 100`). If an `error` comes back, return its message to the form (section 4.6).
+4. **Refresh** the affected pages with `revalidatePath`.
+
+| Action | What it writes |
+|---|---|
+| Create invoice | Work out `invoice_no` (`nextNumber`), `due_date`, the GST split and `total`, then insert into `invoices`. Warn about the credit limit (R9) before saving. |
+| Record a payment | Insert the receipt with `.select().single()` to get its `id` back, then insert **all** its allocations in one array insert. If the allocation insert fails, delete the receipt you just created and show the error. |
+| Allocate unapplied credit | Insert into `allocations`. |
+| Raise a credit note | Work out its number and GST (from the invoice's rate and split), then insert. |
+| Cancel an invoice / set disputed / mark a follow-up done | Update the one field. |
+| Add a note | Insert into `notes`. |
+| Remove an allocation / delete a receipt | Delete. The database refuses to delete a receipt that still has allocations. |
+
+Two things to know about the API:
+
+- **It has no transactions across requests.** That is why recording a payment deletes the receipt again if its allocations fail.
+- **Document numbers can collide** if two browser tabs save at the same moment. The second insert fails with a duplicate-key error. Work out the number again and retry once.
+
+### 4.9 Keeping your workspace private
+
+- The anon key is public by design. **Your workspace id is the key to your data:** keep it in `.env.local` and in Vercel's environment settings, never in your code and never in a variable starting with `NEXT_PUBLIC_`.
+- If your workspace id leaks, create a new workspace (section 3.2) and update `AR_WORKSPACE_ID`.
+
+### 4.10 The Next.js app
+
+**Suggested structure:**
+
+```
+app/
+  layout.tsx                  ← header: navigation + as-at date picker
+  page.tsx                    ← Overdue at a glance
+  customers/…                 ← list, new, [id], [id]/edit
+  invoices/…                  ← list, new, [id]
+  receipts/new/page.tsx
+  statement/page.tsx          ← also the print layout
+  statement/export/route.ts   ← CSV download
+lib/
+  db.ts                       ← the Supabase client (server only)
+  ar/                         ← types, loader and every calculation
+  actions/…                   ← server actions (one file per area)
+  asof.ts                     ← reads ?asof=, defaults to today in Asia/Kolkata
+  format.ts                   ← money, dates, Dr/Cr
+  seller.ts                   ← Brightwater's name and address
+scripts/snapshot.ts           ← saves the sample data as a test fixture (section 4.14)
+tests/…                       ← including tests/fixtures/sample.json
+docs/BRIEF.md
+ai-logs/
+```
+
+**The as-at date.** Every page reads `?asof=YYYY-MM-DD` from the URL. `lib/asof.ts` validates it and, when it is missing, returns **today in India**:
+
+```ts
+new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()) // → "2026-09-18"
+```
+
+Vercel's servers run in UTC. If you use the server's own date, then between midnight and 05:30 IST "today" is still yesterday. The date picker updates the URL, and every navigation link keeps the `asof` parameter.
+
+**Reading data.** Pages are server components:
+
+```ts
+const data = await loadArData();
+const rows = customerPositions(data, asof);
+```
+
+Then render `rows`.
+
+**Writing data** follows section 4.8.
+
+**Screens** are listed in Part 2. Keep them plain and quick to read: tables with right-aligned amounts, red for overdue rows, and amber for the disputed label.
+
+### 4.11 Money, dates and formatting
+
+- **Money is whole paise inside the app.** Convert once in the loader (`Math.round(x * 100)`), and back only to display an amount or save it (`paise / 100`).
+- **Formatting money:** `new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(paise / 100)` gives `₹1,23,456.00`. For balances, format the absolute value and add `Dr` or `Cr`.
+- **Dates** arrive as strings like `"2026-08-31"`. Keep them as strings. **Do not** turn them into `new Date("2026-08-31")`, which is midnight UTC and can display as the previous day. Count days with `daysBetween`, add days with `Date.UTC` in the same way, and format by splitting the string, for example into `31-Aug-2026`.
+- Put these helpers in `lib/format.ts` and test them (section 4.14).
+
+### 4.12 Printing and CSV export
+
+- **Print:** add a print stylesheet (Tailwind's `print:` variants) that hides the navigation and buttons, and sets an A4 page with `@page { size: A4; margin: 15mm; }`. A Print button calls `window.print()`. The printed statement shows Brightwater's name and city, the customer, the period, the table and the ageing footer.
+- **CSV:** use a route handler (`route.ts`) that returns `text/csv` with a `Content-Disposition: attachment; filename="Statement_C002_2026-04-01_to_2026-08-31.csv"` header.
+  - Start the file with a UTF-8 BOM (``) so Excel reads it correctly.
+  - Write amounts as plain numbers (`70800.00`), without ₹ or commas.
+  - Put quotes around any field that contains a comma.
+
+### 4.13 Keeping the figures fresh
+
+Next.js may render a page once when you build it and serve that copy afterwards. Pages that read the `?asof=` parameter are rendered fresh on every request, so make sure every page reads it. After each save, call `revalidatePath` for the pages the change affects.
+
+### 4.14 Testing
+
+1. **A fixture.** Reset your workspace (section 3.2), then save the six tables to `tests/fixtures/sample.json` with a small script, `scripts/snapshot.ts`, that fetches them and writes the file. Run it with `node --env-file=.env.local scripts/snapshot.ts`; current Node.js runs TypeScript files directly. Your tests read this file, so they run offline, and they don't change when you add test records to your workspace.
+2. **Unit tests for `lib/ar`** (Vitest, in `tests/`):
+   - each spot check in Part 1,
+   - `balanceCheck` returns an empty list **for every day** from `2026-01-01` to `2026-10-31` (a simple loop),
+   - bucket boundaries, `gstSplit`, `dueDate` and `nextNumber`,
+   - every statement's closing balance equals `balanceByDocuments` for its To date.
+3. **Helper tests:** money and date formatting, Dr/Cr, CSV quoting, `asof` parsing and the default to today.
+4. **A manual test script** (`docs/TESTING.md`): the clicks you make before every release. For example: record a part-payment with TDS, then check the invoice, the customer, the dashboard and the statement all agree.
+
+### 4.15 Git
+
+- **Commit every time something works**, with a message that says what changed: `Add invoice list with status filter`, not `update` or `fixes`.
+- **Push after every commit.** Vercel deploys each push.
+- Run `git status` before every commit. `.env.local`, `node_modules/` and `.next/` must never appear in the list of files to commit.
+- We read your commit history. Steady progress shows in it. So does a single commit at the end.
+
+### 4.16 Deploying to Vercel
+
+1. In Vercel, choose **Add New → Project**, import your GitHub repository, and keep the detected Next.js settings.
+2. Under **Environment Variables**, add `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `AR_WORKSPACE_ID`, with the same values as your `.env.local`.
+3. Deploy, open the URL, and go through the spot checks.
+4. If you add or change an environment variable later, redeploy. Vercel applies environment variables only to new deployments.
+
+### 4.17 Working with an AI coding assistant
+
+- **Brief it properly.** Point it at `docs/BRIEF.md`, tell it which section you are working on, and ask it to describe its plan before it writes any code.
+- **Work on one screen or one function at a time**, and commit between each.
+- **Check its work against the numbers.** After each calculation function, run the spot checks. AI assistants often write code that looks right but gets a boundary wrong, for example writing `<` where the rule needs `<=`.
+- **Keep it inside the brief.** The schema is fixed, so if it proposes migrations, SQL functions, new tables or a login, stop it (section 4.6).
+- **Keep your conversations.** Export or copy them into `ai-logs/`. We read them.
+
+### 4.18 Troubleshooting
+
+| Symptom | Likely cause |
+|---|---|
+| `create-next-app` says the folder contains conflicting files | A `README.md` (or another file) is still in the root. Complete step 2 of section 4.4 first. |
+| *"Missing x-workspace header"* | `AR_WORKSPACE_ID` is empty or missing. Check `.env.local` and restart `npm run dev`. On Vercel, add the variable, then redeploy. |
+| *"Unknown workspace …"* | The workspace id has a typo. Copy it again from the `create_workspace` response. |
+| *"permission denied for table invoices"*, with a hint to GRANT privileges | Invoices, customers and credit notes cannot be deleted, by design. Cancel or deactivate instead. Ignore the hint: you cannot grant privileges. |
+| *"An issued invoice cannot be edited"* | Only `description` and `is_disputed` can change. Raise a credit note, or cancel the invoice and raise a new one. |
+| `violates check constraint "total_equals_taxable_plus_gst"` | The total you sent is not taxable value + CGST + SGST + IGST. Check the paise conversion. |
+| A customer's figures are off by exactly the TDS | Only `bank_amount` is being used. The settlement value is bank + TDS (R5). |
+| BWA/26-27/0017 shows as part-paid as at 31 Aug | The receipt date is being used instead of the allocation date (R10). |
+| A date shows one day early | A date string has been turned into a JavaScript `Date` (section 4.11). |
+| Your figures no longer match the spot checks, though they did before | You have added records while testing. Reset your workspace (section 3.2). |
+| A page never shows new data | Next.js rendered it once at build time. See section 4.13. |
+| It works locally but the Vercel build fails | A TypeScript or ESLint error that only the production build reports (run `npm run build` locally to see it), or a missing environment variable on Vercel. |
+| Every request fails or times out | The shared database may be paused. Reply to the email that sent you this assignment, and we will restore it. |
+
+---
+
+## Part 5: Build order
+
+Commit and push at the end of every step.
+
+1. **Skeleton:** move the brief, create the Next.js app, and **deploy it to Vercel** while it is still a blank page.
+2. **Connection:** create your workspace, add `lib/db.ts` and the environment variables,
+
+[Message truncated - exceeded 50,000 character limit]
+
+--- CLAUDE ---
+I'll go through the receipts code against the brief before changing anything. First, the form, the server actions, and where they're used:
+  [Bash]
+  [Read: components\forms.tsx]
+  [Read: lib\actions.ts]
+  [Bash]
+The code shows a likely serious bug. The `/receipts/new` page doesn't pass any invoices to the form. Let me confirm on the running app:
+  [Bash]
+I've compared the receipts code with the brief. Some of it matches, but several requirements are missing or broken, including one that makes `/receipts/new` unusable. I haven't changed anything yet.
+
+## Matches the brief
+- **Saved together:** the receipt and its allocations save together, and the receipt is deleted again if the allocations fail.
+- **Settlement value:** it is bank + TDS (R5).
+- **Allocation checks** run before saving (R6):
+  - same customer;
+  - no cancelled invoices;
+  - total allocated not above the settlement value;
+  - each allocation not above the invoice's outstanding amount;
+  - allocation date not before the receipt or invoice date.
+- **Oldest-first suggestion:** by due date, then invoice number, and the user can edit it.
+- **The form:** shows the unapplied amount, the mode options are NEFT/RTGS/IMPS/UPI/Cheque, and the receipt number follows `RCT/YY-YY/NNNN`.
+- **Server code exists** for allocating credit later, removing an allocation, and deleting a receipt with no allocations.
+
+## Missing or broken
+
+**Serious**
+1. **`/receipts/new` never shows any invoices.** The page doesn't pass invoices to the form, so for every customer it says "No invoices are available…". You can't allocate a payment from the page the brief names. Only `/receipts` passes them, so the two pages behave differently.
+2. **TDS is not pre-filled (R5).** It always starts at 0. The brief says to pre-fill it from the customer's `tds_rate_pct` × taxable value.
+3. **You can't allocate unapplied credit from the customer page** (Part 2, Action 2). The form for it exists in the code but isn't used on any page.
+4. **You can't remove an allocation or delete a receipt from any screen** (Action 7). The server code exists, but there are no buttons for it.
+5. **The customer page has no receipts section.** The brief asks for "receipts with any unapplied credit".
+
+**Smaller**
+
+6. On `/receipts`, the invoice list includes **fully paid invoices at ₹0.00**. It also shows balances as at the as-at date rather than the receipt date.
+7. In the form, dates show as `2026-10-05` instead of `05-Oct-2026` (R18). An error message names the invoice by its database id ("invoice 1769") instead of its number.
+8. On the invoice page, allocations show "receipt #42", which is a database id, instead of the receipt number `RCT/26-27/0013`.
+9. **No confirmation after saving.** You land on a blank form with no message showing the receipt number or the unapplied amount.
+10. **Retry on number collision is missing** (section 4.8). If two tabs save at once, the second save fails instead of retrying once with the next number.
+11. **Validation ignores later-dated records.** The "unapplied" and "outstanding" checks only count allocations dated up to the new allocation's date. A later-dated allocation could make them wrong. The database would still reject it, but with a technical message instead of a plain one.
+12. **Inactive customers are hidden from the payment form.** The brief only stops inactive customers from getting new invoices, not from paying. One example is C008 Kamshet, which is inactive.
+
+## What I'd do
+- Make `/receipts/new` the single payment form, with all invoices loaded, only open ones shown, balances as at the receipt date, and formatted dates. Make `/receipts` a **receipts list** with settlement, allocated and unapplied amounts, plus Delete for receipts with no allocations.
+- Pre-fill TDS (details below).
+- Add a **Receipts** section to the customer page showing each receipt's unapplied credit, with an **Allocate credit** form.
+- Add **Remove** buttons to allocations on the invoice page and show receipt numbers.
+- Fix 7, 9, 10, 11 and 12.
+- Add tests for the new allocation rules.
+
+One decision is yours, about **how to pre-fill TDS**. The brief gives the rate and says to apply it to the taxable value, but not which invoices to use. I'd suggest:
+
+> **Expected TDS = rate × taxable value of the invoices being settled, in proportion to the amount allocated to each.**
+
+For example, C001 pays invoice 0001 in full. Taxable is ₹75,000 at 10%, which pre-fills ₹7,500 TDS, matching the sample receipt (₹81,000 bank + ₹7,500 TDS). The figure updates as you change allocations, and you can always overwrite it with what the customer actually deducted.
+
+Shall I go ahead with all of this using that TDS rule?
+
+==============================================================================
+USER  (13 Oct 2026, 6:51 pm)
+==============================================================================
+make all the missed changes
+
+--- CLAUDE ---
+I'll make all the changes. To keep with the brief's rule that every calculation lives in `lib/ar/`, the allocation and TDS logic goes in a new tested module. Plan:
+
+1. `lib/ar/receipts.ts`: open balances, expected TDS, the oldest-first suggestion, and checking allocations before saving.
+2. Server actions: use those checks, give plain error messages, and retry once on a number collision.
+3. `/receipts/new`: the single payment form, with TDS pre-filled.
+4. `/receipts`: a receipts list with Delete and Remove buttons.
+5. Customer page: a Receipts section with Allocate credit.
+6. Invoice page: receipt numbers, Remove buttons, and a pre-filled Record payment link.
+  [Bash]
+Now the core logic module:
+  [Write: lib\ar\receipts.ts]
+  [Write: lib\ar\receipts.test.ts]
+  [Bash]
+The 13 new tests pass. Now I'll rewrite the two server actions to use these checks:
+  [Bash]
+  [Bash]
+TypeScript is clean. Next, I'll rewrite the payment form. Let me look at the helper type just above it:
+  [Bash]
+  [Write: c20386e5-f304-4813-b314-197d081926bd\scratchpad\receipt-forms.tsx]
+  [Bash]
+Those two errors are expected, because the pages haven't been updated yet. Now the pages, starting with the payment form page and the receipts list:
+  [Write: app\receipts\new\page.tsx]
+  [Write: app\receipts\page.tsx]
+Now the customer page gets a Receipts section with Allocate credit, and the invoice page gets receipt numbers, Remove buttons and a pre-filled Record payment link:
+  [Bash]
+  [Bash]
+  [Bash]
+The shell swallowed the backslash, so the pattern reads `/d+$/` instead of `/\d+$/`. Fixing:
+  [Bash]
+  [Edit: lib\actions.ts]
+  [Bash]
+  [Bash]
+  [Bash]
+The section renders. I'll add the explanation for this case, and only show "allocate it below" when there is actually something left to allocate:
+  [Bash]
+Now a final full check: all tests, plus lint across the project.
+  [Bash]
+I've made all 12 changes from the review. All 54 tests pass, including 13 new ones for receipts; TypeScript and lint show no errors. I checked the pages on your running app but didn't record a real payment, so the save itself and its success message are untested.
+
+**Serious issues fixed**
+
+1. **`/receipts/new` now shows open invoices.** It's the single payment form, and opening it from an invoice or customer page pre-selects that customer. Only invoices with something left to settle are listed, oldest due date first. On your data, C001 shows only BWA/26-27/0024 and C003 shows its 4 open invoices.
+2. **TDS is pre-filled** using the rule you approved: rate × the taxable value being settled.
+   - Type the bank amount and the form fills the allocations and the TDS together. For example, ₹81,000 from C001 clears ₹88,500 with ₹7,500 TDS, matching the sample receipt.
+   - If you change TDS to what the customer actually deducted, the allocations follow your figure. A "Use ₹X" link puts the expected figure back.
+   - "Reset to suggestion" undoes your edits.
+3. **Allocate unapplied credit from the customer page.** There's a new **Receipts** section there. Each receipt with credit left gets an Allocate form with invoice, allocation date and amount. The date can't be earlier than the receipt or invoice date.
+4. **Remove and Delete buttons**, each asking for confirmation:
+   - **Remove** next to every allocation, on the Receipts list, the customer page and the invoice page.
+   - **Delete** for receipts that have no allocations.
+5. **Customer page shows receipts:** settlement (bank + TDS), allocated, unapplied, and which invoices each receipt paid.
+
+**Smaller fixes**
+
+6. **`/receipts` is now a receipts list.** It has a customer filter, an "only unapplied credit" filter, a totals row and a Record payment button. Open balances count every allocation and credit note.
+7. **Dates and error messages:** dates show as `05-Oct-2026`, and error messages name invoices by number, for example "BWA/26-27/0006 has only ₹38,500.00 left to settle".
+8. **Invoice page shows receipt numbers.** Its "Payments allocated" table shows `RCT/26-27/0013` with date, mode and reference, instead of "receipt #42".
+9. **Confirmation after saving:** a green banner shows the receipt number, the amount allocated and the amount left unapplied, and that receipt's row is highlighted in the list.
+10. **Retry on a number collision:** if two tabs save at once, it retries once, also trying the next number up in case the clash is with a deleted receipt's number.
+11. **Checks count later-dated records.** These limits now count all allocations and credit notes, whatever their date, as the database does.
+    - **One visible result:** on 31-Aug, C005's ₹1,00,000 shows as unapplied but has no Allocate form. The page now explains that it is allocated on a later date (05-Sep).
+12. **Inactive customers** now appear in the payment form, marked "(inactive)".
+
+All allocation checks now live in [lib/ar/receipts.ts](lib/ar/receipts.ts), as the brief requires, and the save actions use them before writing.
+
+**Brief spot check 5** passes: on 31-Aug-2026 the receipts list shows RCT/26-27/0011 (C005) with ₹1,00,000.00 unapplied. On 13-Oct, all 17 sample receipts show as fully allocated, with 18 allocations.
+
+**Please test these in the browser.** They need real saves to your workspace, which I avoided:
+1. Record a part-payment with TDS for a customer. Check the banner, then check that the invoice, customer page, dashboard and statement all agree.
+2. Allocate leftover credit from the customer page.
+3. Remove an allocation, then delete that receipt.
+
+Afterwards, run the brief's **reset workspace** command (section 3.2) so your figures match the spot checks again.
+
+Nothing is committed yet. Do you want me to commit this as one commit, "Rework receipts: payment form, receipts list, allocate credit, corrections"?
+
+==============================================================================
+USER  (13 Oct 2026, 6:59 pm)
+==============================================================================
+[1 screenshot attached]
+what is this remove button
+
+--- CLAUDE ---
+**Remove** undoes a payment allocation. It's the "remove an allocation" correction required in Part 2 of your brief.
+
+Each line in the Allocations column, such as `BWA/26-27/0021 ₹88,500.00 · 10-Sep-2026`, says that this much of the receipt was used to pay that invoice. Clicking **Remove** next to it:
+
+- **Doesn't delete the receipt.** RCT/26-27/0017 and its ₹88,500 stay recorded.
+- **Unlinks the money from the invoice.** BWA/26-27/0021 goes back to unpaid, showing ₹88,500 outstanding and Overdue if past due.
+- **Turns the amount into unapplied credit** on the receipt. You can then allocate it to the correct invoice from the customer page.
+
+It asks for confirmation first, so a mis-click does nothing.
+
+**When you'd use it:** to fix a mistake, for example a payment applied to the wrong invoice, the wrong amount, or the wrong date. Remove the allocation, then allocate it again correctly. To delete a receipt entirely, you first remove all its allocations; a **Delete** button then appears in the last column, where it currently shows "—".
+
+If you think "Remove" is unclear, I can rename it to **"Unallocate"** or **"Undo allocation"**.
+
+I also noticed the red **"2 Issues"** badge at the bottom left. That's the Next.js development error panel. Click it and send me a screenshot of the errors and I'll fix them.
+
+==============================================================================
+USER  (13 Oct 2026, 7:06 pm)
+==============================================================================
+redo to original
+
+--- CLAUDE ---
+"Original" could mean a few different things here, and some of them can't be undone, so I'll check first.
+  [AskUserQuestion: What would you like to put back to the original?]
+I'll revert only the receipts rework and keep all the other changes. First I'll check what's committed, so I don't undo anything else by accident:
+  [Bash]
+  [Bash]
+  [Bash]
+The receipts rework is undone, and receipts are back to exactly how they were at your last commit ("Update receipts UI 1"). TypeScript is clean, the remaining 41 tests pass, and the receipts, customer and invoice pages all load.
+
+**What I reverted:**
+- Both receipts pages are back to the original: `/receipts` and `/receipts/new` both show the "Record payment" form again, and there's no receipts list.
+- The payment and allocation forms in [components/forms.tsx](components/forms.tsx) and the save logic in [lib/actions.ts](lib/actions.ts).
+- The customer page's Receipts section and the invoice page's "Payments allocated" table. The invoice page is back to the plain "Allocations" list.
+- The new `lib/ar/receipts.ts` and its tests, which are deleted.
+- The three receipt style lines in [app/globals.css](app/globals.css).
+
+**Kept:** the follow-up card links, the Ageing report page and Statements split, global search, and every other UI change from before.
+
+All the receipts issues from my earlier review are present again. The most serious one: `/receipts/new` shows no invoices to allocate, and there are no Remove or Delete buttons or Allocate credit form. Those are requirements in your brief, so they'll need fixing before you submit. If you want any part of the rework back, for example only that bug fix, tell me which parts.
+
+==============================================================================
+USER  (13 Oct 2026, 7:15 pm)
+==============================================================================
+[1 screenshot attached]
+make this look like a button
+
+--- CLAUDE ---
+These are the invoice action buttons in `InvoiceActions`. I'll give them a filled, bolder look with a colour that matches each action:
+  [Bash]
+  [Bash]
+The three invoice action buttons now look like proper buttons. I checked that the invoice page renders all three with the new styles; press Ctrl+Shift+R to see them.
+
+| Button | Style |
+|---|---|
+| **Mark disputed** / **Clear disputed** | Amber outline on a light amber fill, a caution action |
+| **Raise credit note** | Solid navy with white text, the main action |
+| **Cancel invoice** | Red outline on a light red fill; it turns solid red when you hover over it, since cancelling is destructive |
+
+All three are bold and slightly taller, with a soft shadow that deepens when you hover over them and a small press effect when clicked. What the buttons do hasn't changed.
+
+The change is in `InvoiceActions` in [components/forms.tsx](components/forms.tsx), and the button styles are at the end of [app/globals.css](app/globals.css).
+
+==============================================================================
+USER  (13 Oct 2026, 7:16 pm)
+==============================================================================
+[1 screenshot attached]
+make this differentiable
+
+--- CLAUDE ---
+I'll split the card into clearly separate parts: a header strip for description and status, Tax breakdown and Payments as two tinted panels, and the buttons in their own action bar at the bottom.
+  [Bash]
+The script didn't match because restoring the file from git changed its line endings to Windows style. The CSS was added but the page wasn't changed yet. I'll handle the line endings and rerun:
+  [Bash]
+My edit to the script broke its escapes. I'll rewrite just its first lines cleanly:
+  [Bash]
+The shell editing keeps breaking, so I'll make these changes with the file editor instead.
+  [Read: app\invoices\[id]\page.tsx]
+  [Edit: app\invoices\[id]\page.tsx]
+  [Edit: app\invoices\[id]\page.tsx]
+  [Bash]
+The invoice details card now has clearly separate sections. I checked that the invoice page renders all four parts; press Ctrl+Shift+R to see them.
+
+1. **Header strip:** Description and Status sit on a light grey band at the top of the card, each with a small uppercase label. The status tags appear as before.
+2. **Tax breakdown panel:** light blue background, a blue heading band and blue divider lines.
+3. **Payments panel:** light green background, a green heading band and green divider lines. **Balance due** shows in **red** when money is owed and in **green** when the invoice is fully settled.
+4. **Action bar:** the three buttons sit in their own grey strip along the bottom, labelled "Actions". It's hidden when the invoice is printed.
+
+The two panels stand side by side on wide screens and stack on narrow ones. All amounts and buttons work as before.
+
+The change is in [app/invoices/[id]/page.tsx](app/invoices/[id]/page.tsx), with the styles at the end of [app/globals.css](app/globals.css).
+
+==============================================================================
+USER  (13 Oct 2026, 7:22 pm)
+==============================================================================
+[1 screenshot attached]
+make it look more easy ui without changing anything
+
+--- CLAUDE ---
+I'll keep the same columns and data and only improve the look. Let me see the current page:
+  [Read: app\customers\page.tsx]
+  [Bash]
+  [Write: app\customers\page.tsx]
+  [Bash]
+I've restyled the Customers list. It has the same columns, the same figures and the same links. I checked that it renders, but haven't seen it in a browser, so press Ctrl+Shift+R.
+
+**Visual changes:**
+- **Page title** is larger and navy, and the date now reads **13-Oct-2026** instead of `2026-10-13`. That matches the date format used everywhere else.
+- **Customer column:**
+  - **Initials badge:** each customer has a round badge with their initials, such as **TF** for Tamhini Foods.
+  - **Code pill:** the code (C001…) sits in a small grey pill under the blue name.
+  - **Click target:** the whole cell is clickable.
+- **Easier-to-scan rows:**
+  - **More space:** a little more padding in each row.
+  - **Striping:** a soft background on every other row.
+  - **Hover:** a light blue highlight on the row under your mouse.
+  - **Header:** small uppercase headings that stay visible while you scroll.
+- **Amounts:**
+  - **₹0.00** values are greyed out, so the real balances stand out.
+  - **Unapplied credit** above zero shows in amber.
+  - **Net balance** is bold. Credit balances (**Cr**) would show in green.
+- **Status tags:** **Active** is now green, **Over limit** stays red and **Inactive** stays grey. Inactive customers like Kamshet Hospitality appear faded.
+
+The changes are in [app/customers/page.tsx](app/customers/page.tsx), with styles at the end of [app/globals.css](app/globals.css). The styles only apply to this table, so other tables aren't affected.
+
+==============================================================================
+USER  (13 Oct 2026, 7:25 pm)
+==============================================================================
+[1 screenshot attached]
+make view button in single line for all tabs
+
+--- CLAUDE ---
+The cards are already the same height, but "View →" sits right under each card's text, so it lands at different heights. I'll pin it to the bottom of every card:
+  [Bash]
+"View →" now sits on the same line at the bottom of all 5 cards on the Follow-ups page, however long each card's description is.
+
+It's a two-rule CSS change at the end of [app/globals.css](app/globals.css), and nothing else on the cards changed. I haven't checked it in a browser; press Ctrl+Shift+R to see it.
+
+==============================================================================
+USER  (13 Oct 2026, 7:26 pm)
+==============================================================================
+[1 screenshot attached]
+make this 6 tabs clickable
+
+--- CLAUDE ---
+I'll make each card open a page that shows that card's figure.
+
+The Invoices page has no filters yet, so three of the cards need a small one. I'll add a `filter` option to the Invoices page: open invoices, overdue invoices, and invoices in the 90-day DSO window. The totals row will then add up only the filtered invoices, so it matches the card.
+  [Read: app\invoices\page.tsx]
+  [Edit: app\invoices\page.tsx]
+  [Bash]
+The Invoices page filters are in place. Now the dashboard cards:
+  [Bash]
+  [Edit: app\page.tsx]
+  [Bash]
+All 6 cards at the top of the Dashboard are now clickable. Each one opens a list whose totals add up to the card's figure. I clicked through all six on your running app and every figure matched its list exactly.
+
+| Card | Opens | Checked |
+|---|---|---|
+| **Invoice outstanding** ₹14,50,520 | Invoices, only those with a balance, largest first | 14 invoices, outstanding total ₹14,50,520.00 ✓ |
+| **Overdue amount** ₹14,50,520 | Invoices, overdue only, largest first | Total ₹14,50,520.00 ✓ |
+| **Unapplied credit** ₹100 | Ageing report, zero-balance customers hidden | Unapplied credit total ₹100.00 ✓ |
+| **Net receivable** ₹14,50,420 Dr | Ageing report | Net balance total ₹14,50,420.00 Dr ✓ |
+| **DSO** 141 days | Invoices dated in the 90-day DSO window (16-Jul to 13-Oct) | 7 invoices; with credit notes in the window deducted, gives 141 ✓ |
+| **Overdue invoices** 14 | Invoices, overdue only, most days late first | 14 rows ✓ |
+
+Today, Invoice outstanding and Overdue amount are the same figure because every open invoice is overdue. They would differ once an invoice isn't yet due.
+
+**On the Invoices page:**
+- When you arrive from a card, a blue banner shows what's being shown, for example "Showing: Overdue invoices · 14 invoices". It has a **"Show all invoices ✕"** link to clear the filter.
+- The totals row now adds up only the invoices on screen. Before, it always added up every invoice.
+- The DSO view has a note explaining the formula.
+- Column sorting still works while a filter is on.
+
+The cards lift slightly with a shadow when you hover over them and show "View →" along the bottom, like the Follow-ups cards. The changes are in [app/page.tsx](app/page.tsx) and [app/invoices/page.tsx](app/invoices/page.tsx), with one style line in [app/globals.css](app/globals.css).
+
+==============================================================================
+USER  (13 Oct 2026, 7:27 pm)
+==============================================================================
+[1 screenshot attached]
+this is clickable but unable to see visually
+
+--- CLAUDE ---
+I'll make each line look like a clickable row:
+- a light card with a border;
+- the count as a coloured badge;
+- blue text;
+- a clear "›" arrow, or ▾ for lines that expand;
+- a highlight when you hover.
+
+Lines with a count of 0 stay plain, so it's obvious they're not clickable.
+  [Bash]
+  [Read: app\page.tsx]
+  [Edit: app\page.tsx]
+  [Bash]
+The **Needs attention** lines on the Dashboard now look clickable. I checked that all 4 clickable rows render with their badges and arrows. I haven't looked at it in a browser, so press Ctrl+Shift+R to see it.
+
+- **Each line is a light card** with a border, and it highlights in blue with a soft shadow when you hover over it.
+- **The count is a red badge**, such as **[1]** or **[5]**, so the number stands out.
+- **Blue text tells you what clicking does:**
+  - **1 item:** shows the name, for example "· Kundalika Castings Pvt. Ltd.". Clicking opens it.
+  - **More than 1:** shows "· click to see all 2". Clicking expands the list.
+- **A blue "›" arrow** sits on the right of each row. On expandable rows it turns to point down when the list is open.
+- **Lines with a count of 0** stay plain, with a grey badge and no border, so you can tell they're not clickable.
+
+The R14 control check badge is unchanged. The changes are in the `Attention` component in [app/page.tsx](app/page.tsx), with styles at the end of [app/globals.css](app/globals.css).
+
+==============================================================================
+USER  (13 Oct 2026, 7:32 pm)
+==============================================================================
+[1 screenshot attached]
+why in my supabase i'm not able to see any tables like this
+
+--- CLAUDE ---
+You can't see tables like these in your Supabase dashboard because your data isn't in a Supabase project you own. The screenshot shows a different setup.
+
+**What's in the photo:** a personal Supabase project. You can see "shrutikasliwal's Org" and the project "ar-followup" at the top. That person created their own database with their own tables, such as `audit_log`, `email_log`, `followups`, `profiles` and `receipt_summary`, and their own data (INV-001…). Because they own the project, the Supabase dashboard shows its tables.
+
+**Your setup is different, as the brief intends:**
+- Your app uses the **shared database run by Verve Advisory** (`jxllwhrinqlzvydzrscs.supabase.co`). Section 4.2 says: *"You do not need a Supabase account."*
+- You reach your private copy of the data, your **workspace**, through the API only, using the public anon key plus your `AR_WORKSPACE_ID` in `.env.local`.
+- That project belongs to Verve, not you, so it never appears in your Supabase dashboard. If you created a Supabase account, any project there is separate and empty, and your app doesn't use it.
+
+**Don't copy that setup.** Section 4.1 says not to add another database, and section 4.6 says the schema is fixed: no new tables, SQL or migrations. Extra tables like `email_log` or `audit_log` would go against the brief. Your app already does everything through the six fixed tables. For example, email reminders are logged as "Email" notes.
+
+**How to look at your data:**
+1. **In your app.** Customers, Invoices, Receipts, Statements and the other pages show everything in your workspace.
+2. **Directly from the API**, in a Git Bash terminal in your project folder. This lists your invoices:
+
+```bash
+set -a; source .env.local; set +a
+curl -s "$SUPABASE_URL/rest/v1/invoices?select=invoice_no,invoice_date,total&order=invoice_no" \
+  -H "apikey: $SUPABASE_ANON_KEY" -H "x-workspace: $AR_WORKSPACE_ID"
+```
+
+To see another table, replace `invoices` with `customers`, `receipts`, `allocations`, `credit_notes` or `notes`. Keep your workspace id private: don't paste it into chats or screenshots.
+
+==============================================================================
+USER  (13 Oct 2026, 7:32 pm)
+==============================================================================
+where is my data stores for customers and receipts
+
+--- CLAUDE ---
+Your customers and receipts are stored in the **shared Supabase database** at `https://jxllwhrinqlzvydzrscs.supabase.co`, inside **your own workspace**. Nothing is saved on your computer or in the app's files.
+
+**Where in the database:**
+
+| Data | Table | Notes |
+|---|---|---|
+| Customers | `customers` | Code, name, city, state, contact, email, phone, GSTIN, credit days and limit, TDS rate, active flag |
+| Receipts | `receipts` | Receipt no., customer, date, bank amount, TDS, mode, reference |
+| Which invoices a receipt paid | `allocations` | Links a receipt to an invoice, with an amount and date |
+
+Every row has a hidden `workspace_id` column. The database fills it in from your `AR_WORKSPACE_ID` automatically, and only rows with your id are ever shown to your app. Other candidates' rows are in the same tables but invisible to you, and yours to them.
+
+**How a save travels in your code:**
+1. You click **Save customer** or **Save receipt**. The form in [components/forms.tsx](components/forms.tsx) sends the data to the server.
+2. The server actions in [lib/actions.ts](lib/actions.ts) check the data, then write it: `saveCustomer` / `updateCustomer` to `customers`, and `createReceipt` to `receipts` plus `allocations`.
+3. They connect through [lib/db.ts](lib/db.ts), the only file that talks to Supabase. It sends your workspace id in the `x-workspace` header, using the values in `.env.local`.
+
+**How it's read back:** every page calls `loadArData()` in [lib/ar/load.ts](lib/ar/load.ts). It loads all six tables fresh from Supabase on each request, then calculates balances in memory.
+
+**One thing that isn't your live data:** [tests/fixtures/sample.json](tests/fixtures/sample.json) is a saved snapshot of the original sample data, used only by the automated tests. Changes you make in the app don't appear there.
+
+To view the rows directly, use the `curl` command from my previous message with `customers` or `receipts` in place of `invoices`. To go back to the original sample data, use the **reset workspace** command in section 3.2 of the brief. It deletes everything you've added.
+
+==============================================================================
+USER  (13 Oct 2026, 7:38 pm)
+==============================================================================
+make the brightwater advisory heading bigger and change if required to look more professional
+
+--- CLAUDE ---
+  [Read: app\layout.tsx]
+  [Edit: app\layout.tsx]
+  [Bash]
+The "Brightwater Advisory" heading is now bigger and styled more like a company header. I checked that it renders, but haven't looked at it in a browser, so press Ctrl+Shift+R.
+
+- **Bigger company name:** 24px (up from 17px), bold, slightly tighter letter spacing.
+- **Logo mark:** a rounded blue square with a simple two-wave "water" icon, on the left of the name. I drew it myself; Brightwater has no real logo.
+- **Cleaner tagline:** **RECEIVABLES HUB** in small spaced capitals, then "· Baner, Pune 411045" in a softer colour.
+- **Home link:** clicking the logo or name now takes you to the Dashboard.
+
+The header is a little taller to fit the larger name. The search box and as-at date picker are unchanged. The change is in [app/layout.tsx](app/layout.tsx), with styles at the end of [app/globals.css](app/globals.css). If you'd prefer letters such as "BA" instead of the wave icon, or a different colour for the mark, tell me.
+
+==============================================================================
+USER  (13 Oct 2026, 7:40 pm)
+==============================================================================
+[1 screenshot attached]
+make this look more simple and professional
+
+--- CLAUDE ---
+I'll make the dashboard's Overdue invoices table cleaner: white rows with a thin coloured stripe on the left instead of full red and yellow fills, softer labels and days-late badges, and a small colour key. Only this table changes; the other pages keep their row colours.
+  [Bash]
+  [Edit: app\page.tsx]
+  [Bash]
+I've simplified the **Overdue invoices** table on the Dashboard. It shows the same invoices and figures, with less colour. I checked that it renders: 12 rows, 8 marked red and 4 amber. I haven't looked at it in a browser, so press Ctrl+Shift+R.
+
+**What changed:**
+- **White rows:** the full red and yellow backgrounds are gone. A thin coloured stripe on the left edge shows the status instead: red for overdue, amber for part-paid. Rows get a faint grey highlight on hover.
+- **Header:**
+  - **Row count:** a line under the title, "Top 12 of 14, longest overdue first", so it's clear the table doesn't list everything.
+  - **Colour key:** ● Overdue ● Part-paid.
+  - **"View all →"** now opens the Invoices page already filtered to overdue invoices.
+- **Days late:** shown as a soft badge, for example "236 days". It's slightly darker for invoices over 30 days late and darker again over 90.
+- **Labels:** Part-paid and Disputed use light outlined tags instead of solid dark ones.
+- **Text:** invoice numbers and outstanding amounts are bold, due dates are grey, and headings are small uppercase with more spacing between rows.
+
+This only affects the Dashboard table. The Invoices, Customers and Follow-ups pages keep their current row colours. If you prefer this cleaner style, I can apply it to those tables too.
+
+The change is in [app/page.tsx](app/page.tsx), with styles at the end of [app/globals.css](app/globals.css).
+
+==============================================================================
+USER  (13 Oct 2026, 7:40 pm)
+==============================================================================
+dont remove bg colors and make them look simple
+
+--- CLAUDE ---
+I'll bring the row background colours back on this table and keep the simpler style. The shades will sit between the earlier very light ones (which you found too faint) and the current strong ones, so the table stays easy to read:
+  [Bash]
+The row background colours are back on the Dashboard's Overdue invoices table, and the simpler style stays. I haven't looked at it in a browser, so press Ctrl+Shift+R.
+
+- **Row colours:** **light red** for overdue rows (`#fde4e0`) and **light amber** for part-paid rows (`#fdedb8`). They're clearly visible but softer than the strong fills from before, so the text stays easy to read. Each row gets slightly darker when you hover over it.
+- **Left stripe:** the coloured stripe on the left edge is a bit thicker (4px) and darker, so the status is clear at a glance.
+- **Badges and tags:** the days-late badges and the Part-paid / Disputed tags now have a semi-transparent white background, so they stand out on the coloured rows without heavy colours.
+- **Kept from the last change:** the "Top 12 of 14" line, the colour key, the bold amounts and the spacing.
+
+This is a single style line at the end of [app/globals.css](app/globals.css), and it only affects this Dashboard table. If you want the colours lighter or darker, tell me.
+
+==============================================================================
+USER  (13 Oct 2026, 7:41 pm)
+==============================================================================
+left hand side strips red and yellow not looking differentiable
+
+--- CLAUDE ---
+The red stripe and the orange-amber stripe are too close in colour. I'll make the part-paid stripe a bright golden yellow, keep a deep red for overdue, and widen both stripes a little:
+  [Bash]
+The left-hand stripes are now two clearly different colours, and slightly wider (5px instead of 4px):
+
+- **Overdue:** deep red (`#c01f14`).
+- **Part-paid:** bright golden yellow (`#eab308`). Before, it was an orange-amber that looked too close to red.
+
+The colour key above the table (● Overdue ● Part-paid) uses the same two colours, so it matches the stripes.
+
+This is one style line at the end of [app/globals.css](app/globals.css). I haven't looked at it in a browser, so press Ctrl+Shift+R.
+
+==============================================================================
+USER  (13 Oct 2026, 7:42 pm)
+==============================================================================
+also labels and days left not looking highlighted
+
+--- CLAUDE ---
+I'll make the days-late badges and the labels solid colours with bold text, so they stand out on the coloured rows:
+  [Bash]
+The days-late badges and the labels in the Dashboard's Overdue invoices table are now solid colours with bold text, each with a slight shadow so they stand out on the coloured rows.
+
+**Days late:** white text on red, darker the later the invoice.
+
+| Days late | Badge |
+|---|---|
+| Up to 30 | Bright red |
+| 31–90 | Red |
+| Over 90 | Dark maroon |
+
+**Labels:**
+- **Part-paid:** solid golden yellow with dark brown text, the same colour as the part-paid stripe and the key.
+- **Disputed:** solid deep red with white text, the same colour as the overdue stripe.
+
+This is one style line at the end of [app/globals.css](app/globals.css), and it only affects this Dashboard table. I haven't looked at it in a browser, so press Ctrl+Shift+R.
+
+==============================================================================
+USER  (13 Oct 2026, 7:43 pm)
+==============================================================================
+[1 screenshot attached]
+make it look like more cliable
+
+--- CLAUDE ---
+  [Bash]
+"Open ageing report →" in the Dashboard's ageing section is now a button. It has a blue outline, rounded corners and bold blue text, and it fills solid blue with white text when you hover over it. The → arrow nudges right on hover. It still goes to the Ageing report page.
+
+The change is in [app/page.tsx](app/page.tsx), with the style at the end of [app/globals.css](app/globals.css). I haven't looked at it in a browser, so press Ctrl+Shift+R.
+
+==============================================================================
+USER  (13 Oct 2026, 8:24 pm)
+==============================================================================
+[1 screenshot attached]
+also make this button visible for all
+
+--- CLAUDE ---
+  [Bash]
+  [Bash]
+Making every button stronger can also affect the search dropdown rows, which are technically buttons. I'll exclude those so they keep their flat look:
+  [Bash]
+The customer page buttons now look like proper buttons, matching the invoice action buttons. I checked that both render with the new styles on a customer page; press Ctrl+Shift+R to see them.
+
+- **Record payment:** solid navy with white text, the main action.
+- **Deactivate:** red outline on light red, turning solid red on hover. When a customer is inactive, the button says **Reactivate** and is green instead.
+
+**All other plain buttons in the app** now have a stronger grey border, bold text, a soft shadow, and a light blue fill when you hover over them. This covers Edit customer, Cancel, Reset, Copy message, the filter buttons and so on. Navy buttons keep their look and get slightly lighter on hover. The search dropdown and the header's Apply button keep their own styles.
+
+The changes are in `CustomerActions` in [components/forms.tsx](components/forms.tsx), with styles at the end of [app/globals.css](app/globals.css).
+
+==============================================================================
+USER  (13 Oct 2026, 8:26 pm)
+==============================================================================
+[1 screenshot attached]
+increase the font size for the invoice number for all
+
+--- CLAUDE ---
+  [Bash]
+The invoice number at the top of the invoice page is now much larger: 30px, extra-bold and navy, with a little more space below it. Every invoice uses the same page, so it applies to all invoices, BWA/26-27/0025 included.
+
+The change is in [app/invoices/[id]/page.tsx](app/invoices/[id]/page.tsx), with the style at the end of [app/globals.css](app/globals.css). I haven't looked at it in a browser, so press Ctrl+Shift+R.
+
+Other page titles such as "Invoices", "Follow-ups" and "Receipts" are still small. If you want, I can enlarge all page titles to match in one change.
+
+==============================================================================
+USER  (13 Oct 2026, 8:27 pm)
+==============================================================================
+[1 screenshot attached]
+whichever pages are having back button make it more look like bbutton and visible
+
+--- CLAUDE ---
+All the back links share one style (`back-link`), so restyling it once updates every page. Let me check which pages use it:
+  [Grep: pattern "back-link"]
+  [Bash]
+All back links are now proper buttons: a white button with a grey border, rounded corners, bold navy text and a soft shadow. It turns light blue when you hover over it. The arrow and text are unchanged, and it's still hidden when you print.
+
+That covers all 4 pages that have a back link:
+- **Invoice page:** "← All invoices"
+- **Customer page:** "← All customers"
+- **Send email screen:** "← Back to BWA/…"
+- **Log follow-up screen:** "← All follow-ups"
+
+This is one style line at the end of [app/globals.css](app/globals.css), so any back link added later gets the same look. I haven't looked at it in a browser, so press Ctrl+Shift+R.
+
+==============================================================================
+USER  (13 Oct 2026, 8:28 pm)
+==============================================================================
+[1 screenshot attached]
+what is the use of this button
+
+--- CLAUDE ---
+It fills in the allocation amounts for you. It's the "oldest-first suggestion" that section R6 of your brief requires.
+
+**How it works:**
+1. Enter the **Bank amount** and the **TDS deducted**. Together they're the settlement value.
+2. Click **Suggest oldest-first allocations**.
+3. The form fills the "Allocate (₹)" boxes, starting with the invoice with the **oldest due date** (ties go by invoice number):
+   - It pays that invoice in full, then moves to the next, until the money runs out.
+   - The last invoice may be only partly paid.
+   - Any money left over shows as **Unapplied credit**.
+4. You can change or clear any amount before clicking Save.
+
+**Example:** with ₹1,00,000 settlement, ₹88,500 open on the oldest invoice and ₹70,800 on the next, it fills ₹88,500 on the first and ₹11,500 on the second, leaving ₹0 unapplied.
+
+**Limitations of the current version:**
+- **It doesn't run automatically.** If you change the bank amount or TDS later, click it again.
+- **TDS isn't pre-filled.** You type it yourself.
+- **On `/receipts/new` it does nothing**, because that page doesn't load any invoices (the bug from my earlier review). It only works on the `/receipts` page.
+
+Those were fixed in the receipts rework you asked me to undo. If you'd like only the `/receipts/new` invoice fix back, without the other changes, I can do just that.
+
+==============================================================================
+USER  (13 Oct 2026, 8:30 pm)
+==============================================================================
+[1 screenshot attached]
+after changing the customer from the dropdown clear the textboxes also
+
+--- CLAUDE ---
+I'll reset the form when you switch customer: Bank amount, TDS, Reference and the allocation boxes will clear, Mode goes back to NEFT, and any old error message disappears. The receipt date stays, since it usually doesn't depend on the customer.
+  [Bash]
+  [Read: components\forms.tsx]
+  [Edit: components\forms.tsx]
+  [Edit: components\forms.tsx]
+  [Edit: components\forms.tsx]
+  [Edit: components\forms.tsx]
+  [Bash]
+Changing the customer in the **Record payment** form now clears the form for the new customer:
+
+- **Bank amount:** cleared.
+- **TDS actually deducted:** back to 0.
+- **Reference:** cleared.
+- **Mode:** back to NEFT.
+- **Allocate (₹) boxes:** all cleared. This already happened before.
+- **Old error messages:** removed.
+
+The **Receipt date** is kept, since it usually stays the same when you switch customer. Tell me if you want that reset to today too.
+
+To make Mode and Reference clearable, the form now keeps track of their values. Saving works the same as before. The change is in `ReceiptForm` in [components/forms.tsx](components/forms.tsx). TypeScript is clean; I haven't clicked through it in a browser, so press Ctrl+Shift+R and try switching customers.
+
+==============================================================================
+USER  (13 Oct 2026, 8:32 pm)
+==============================================================================
+[1 screenshot attached]
+when the browser is zoomed Actions column is getting disappear what can be done
+
+--- CLAUDE ---
+The table has 10 columns, and the text is kept on one line, so at higher zoom it gets wider than the screen. The Actions column ends up off to the right and you have to scroll sideways to reach it. I'll fix it in two ways:
+
+1. **Pin the Actions column** to the right edge, so it always stays visible while the rest of the table scrolls under it.
+2. **Let long text wrap** (customer, last follow-up, latest promise), so the table is narrower and needs less scrolling.
+  [Bash]
+  [Bash]
+The **Actions** column on the Follow-ups page now stays visible when you zoom in. I checked that the page renders with the pinned column; zoom to 125% or 150% to confirm it on your screen.
+
+- **Pinned to the right:** when the table is too wide, the other columns scroll sideways and slide underneath the Actions column. A soft shadow on its left edge shows the scrolling area. The pinned cells keep the row's red background.
+- **Narrower table:** Customer, Last follow-up and Latest promise now wrap onto two lines instead of stretching the table, so you scroll sideways less.
+- **Smaller buttons:** the actions are now small buttons: **Log** (navy) and **Email** (outlined). I shortened "Log follow-up" to **Log** so the pinned column stays narrow. It opens the same Log follow-up screen.
+
+The change is in [app/follow-ups/page.tsx](app/follow-ups/page.tsx), with styles at the end of [app/globals.css](app/globals.css). Press Ctrl+Shift+R first. I can do the same on other wide tables, such as Invoices, if their right-hand columns also disappear when zoomed.
+
+==============================================================================
+USER  (13 Oct 2026, 8:33 pm)
+==============================================================================
+Hide customers with zero balanceApply
+
+make this change live no need of apply button
+
+--- CLAUDE ---
+I'll make the checkbox update the Ageing report as soon as you tick or untick it, and remove the Apply button:
+  [Write: components\auto-submit-checkbox.tsx]
+  [Read: app\ageing\page.tsx]
+  [Edit: app\ageing\page.tsx]
+  [Bash]
+The **"Hide customers with zero balance"** checkbox on the Ageing report now updates the table as soon as you tick or untick it, and the Apply button is gone. Clicking the text next to the box works too.
+
+- **Ticked:** customers with ₹0 outstanding and ₹0 unapplied credit are hidden.
+- **Unticked:** all customers are shown again.
+
+The setting is still saved in the page address, so a bookmark or refresh keeps it. Because the form is submitted, the page reloads each time you click the box.
+
+The checkbox is a small new component, [components/auto-submit-checkbox.tsx](components/auto-submit-checkbox.tsx), used in [app/ageing/page.tsx](app/ageing/page.tsx). The page loads and TypeScript is clean; I haven't clicked the box in a browser, so press Ctrl+Shift+R and give it a try.
+
+==============================================================================
+USER  (13 Oct 2026, 8:34 pm)
+==============================================================================
+increase it little bit
+
+--- CLAUDE ---
+  [Bash]
+The **"Hide customers with zero balance"** option on the Ageing report is now a little bigger:
+
+- **Checkbox:** 19px, larger than the browser default. When ticked it's navy, matching the app's colours.
+- **Label text:** 15px (up from 12px) and in the normal dark text colour instead of grey.
+
+The change is in [components/auto-submit-checkbox.tsx](components/auto-submit-checkbox.tsx) and [app/ageing/page.tsx](app/ageing/page.tsx), with one style line in [app/globals.css](app/globals.css). TypeScript is clean; press Ctrl+Shift+R to see it.
+
+==============================================================================
+USER  (13 Oct 2026, 8:35 pm)
+==============================================================================
+[1 screenshot attached]
+unable to get when the data is getting saved after clicking on Save receipt button so add something
+
+--- CLAUDE ---
+I'll add a clear confirmation. While saving, the button already says "Saving…". After a successful save, the form will:
+
+- show a **green banner at the top** with the receipt number, settlement, amount allocated and amount left unapplied;
+- **scroll up** to the banner;
+- **clear the form**, ready for the next payment;
+- **refresh the invoice balances**.
+
+The current form instead jumps to `/receipts` and shows a blank form with no message, which is why you can't tell whether it saved.
+  [Bash]
+  [Edit: components\forms.tsx]
+  [Edit: components\forms.tsx]
+  [Bash]
+  [Edit: components\forms.tsx]
+  [Bash]
+After clicking **Save receipt & allocations**, you now get a clear confirmation, and the form no longer jumps to another page. I haven't saved a real receipt, so I haven't seen the banner myself. Try one on `/receipts`. Both receipt pages load and TypeScript is clean.
+
+**What you'll see:**
+1. **While saving:** the button says "Saving…".
+2. **On success:**
+   - **Green banner:** a green banner with a ✓ appears at the top of the form, and the page scrolls to it. It reads, for example: **"Receipt RCT/26-27/0019 saved** for Tamhini Foods Pvt. Ltd. Settlement ₹88,500.00 · Allocated ₹87,320.00 · Unapplied credit ₹1,180.00 · View customer →". The ✕ closes it.
+   - **Form cleared:** Bank amount, TDS, Mode, Reference and the allocation boxes are reset for the next payment.
+   - **Balances refreshed:** the Outstanding column updates straight away.
+3. **On failure:** the red error message appears as before, and nothing you typed is cleared.
+
+**Bug fixed:** your screenshot shows "a · a" in the Customer box while the table lists Tamhini Foods' invoices. After a save, the dropdown reset itself to the first customer, while the form still used the previous one. A payment saved after that could have gone to a different customer than the one shown. The form no longer resets itself after saving, so the dropdown always shows the customer the form is using.
+
+On `/receipts/new` the invoice table is still empty; that's the known bug from my earlier review. The changes are in `ReceiptForm` in [components/forms.tsx](components/forms.tsx), with the banner style at the end of [app/globals.css](app/globals.css).
+
+==============================================================================
+USER  (15 Oct 2026, 4:09 pm)
+==============================================================================
+give me the chat log of our whole conversation in text file
+
+--- CLAUDE ---
+I'll build this from the session's saved transcript. Your brief (section 4.17) asks for AI conversations to be kept in an `ai-logs/` folder, so I'll save it there. First, let me find the transcript:
+  [Bash]
+  [Write: c20386e5-f304-4813-b314-197d081926bd\scratchpad\export-log.mjs]
+  [Bash]

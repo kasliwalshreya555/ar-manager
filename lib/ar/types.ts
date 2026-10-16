@@ -6,5 +6,6 @@ export interface Receipt { id:number; receiptNo:string; customerId:number; recei
 export interface Allocation { id:number; receiptId:number; invoiceId:number; allocationDate:string; amount:Paise }
 export interface Note { id:number; customerId:number; invoiceId:number|null; noteDate:string; noteType:"Call"|"Email"|"Meeting"|"Note"; body:string; followUpDate:string|null; followUpDone:boolean; promiseDate:string|null; promiseAmount:Paise|null }
 export interface ArData { customers:Customer[]; invoices:Invoice[]; creditNotes:CreditNote[]; receipts:Receipt[]; allocations:Allocation[]; notes:Note[] }
-export type Bucket = "Not due"|"1-30"|"31-60"|"61-90"|"91-180"|"Over 180";
+/** Ageing bands by days past due (R12, as revised by the client): not due, 1–15, 16–30, 31–45, 46–90, over 90. */
+export type Bucket = "Not due"|"1-15"|"16-30"|"31-45"|"46-90"|"Over 90";
 export interface InvoicePosition { invoice:Invoice; received:Paise; credited:Paise; outstanding:Paise; daysPastDue:number; status:"Paid"|"Due"|"Overdue"; isPartPaid:boolean; bucket:Bucket|null }

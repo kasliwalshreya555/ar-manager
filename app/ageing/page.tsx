@@ -1,21 +1,13 @@
 import Link from "next/link";
 import { loadArData } from "@/lib/ar/load";
-import { customerPositions } from "@/lib/ar/positions";
+import { customerPositions, BUCKETS, bucketLabel } from "@/lib/ar/positions";
 import { balance, money, dateLabel } from "@/lib/format";
 import { asOfDate } from "@/lib/asof";
 import { AutoSubmitCheckbox } from "@/components/auto-submit-checkbox";
 
 export const dynamic = "force-dynamic";
 
-const buckets = ["Not due", "1-30", "31-60", "61-90", "91-180", "Over 180"] as const;
-const bucketLabels: Record<(typeof buckets)[number], string> = {
-  "Not due": "Not due",
-  "1-30": "1–30",
-  "31-60": "31–60",
-  "61-90": "61–90",
-  "91-180": "91–180",
-  "Over 180": "Over 180",
-};
+const buckets = BUCKETS;
 
 export default async function AgeingReport({
   searchParams,
@@ -94,7 +86,7 @@ export default async function AgeingReport({
                 <th>Customer</th>
                 {buckets.map((b) => (
                   <th className="num" key={b}>
-                    {bucketLabels[b]}
+                    {bucketLabel(b)}
                   </th>
                 ))}
                 <th className="num">Unapplied credit</th>

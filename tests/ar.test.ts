@@ -79,14 +79,19 @@ describe("date and bucket rules", () => {
     expect(dueDate("2026-04-05", 30)).toBe("2026-05-05");
   });
 
-  it("covers ageing boundaries", () => {
+  it("covers ageing boundaries (not due, 1–15, 16–30, 31–45, 46–90, over 90)", () => {
+    expect(bucketFor(-5)).toBe("Not due");
     expect(bucketFor(0)).toBe("Not due");
-    expect(bucketFor(1)).toBe("1-30");
-    expect(bucketFor(30)).toBe("1-30");
-    expect(bucketFor(31)).toBe("31-60");
-    expect(bucketFor(61)).toBe("61-90");
-    expect(bucketFor(91)).toBe("91-180");
-    expect(bucketFor(181)).toBe("Over 180");
+    expect(bucketFor(1)).toBe("1-15");
+    expect(bucketFor(15)).toBe("1-15");
+    expect(bucketFor(16)).toBe("16-30");
+    expect(bucketFor(30)).toBe("16-30");
+    expect(bucketFor(31)).toBe("31-45");
+    expect(bucketFor(45)).toBe("31-45");
+    expect(bucketFor(46)).toBe("46-90");
+    expect(bucketFor(90)).toBe("46-90");
+    expect(bucketFor(91)).toBe("Over 90");
+    expect(bucketFor(400)).toBe("Over 90");
   });
 
   it("adds calendar days around leap year", () => {
@@ -150,7 +155,7 @@ describe("invoicePositions", () => {
     expect(result[0].daysPastDue).toBe(14);
     expect(result[0].status).toBe("Overdue");
     expect(result[0].isPartPaid).toBe(true);
-    expect(result[0].bucket).toBe("1-30");
+    expect(result[0].bucket).toBe("1-15");
   });
 
   it("ignores allocations dated after the as-at date", () => {
@@ -312,7 +317,7 @@ describe("invoicePositions", () => {
     expect(result[0].netBalance).toBe(88000);
     expect(result[0].overdue).toBe(98000);
     expect(result[0].overLimit).toBe(true);
-    expect(result[0].buckets["1-30"]).toBe(98000);
+    expect(result[0].buckets["1-15"]).toBe(98000);
   });
 });
 

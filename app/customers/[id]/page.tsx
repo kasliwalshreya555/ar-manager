@@ -1,6 +1,6 @@
-import Link from "next/link";import {notFound} from "next/navigation";import {loadArData} from "@/lib/ar/load";import {customerPositions} from "@/lib/ar/positions";import {money,balance,dateLabel} from "@/lib/format";import {asOfDate} from "@/lib/asof";import {CustomerActions} from "@/components/forms";import type {Bucket} from "@/lib/ar/types";
+import Link from "next/link";import {notFound} from "next/navigation";import {loadArData} from "@/lib/ar/load";import {customerPositions,bucketLabel} from "@/lib/ar/positions";import {money,balance,dateLabel} from "@/lib/format";import {asOfDate} from "@/lib/asof";import {CustomerActions} from "@/components/forms";import type {Bucket} from "@/lib/ar/types";
 export const dynamic="force-dynamic";
-const bucketColors:Record<Bucket,string>={"Not due":"#16a34a","1-30":"#eab308","31-60":"#f97316","61-90":"#ea580c","91-180":"#dc2626","Over 180":"#7f1d1d"};
+const bucketColors:Record<Bucket,string>={"Not due":"#16a34a","1-15":"#eab308","16-30":"#f97316","31-45":"#ea580c","46-90":"#dc2626","Over 90":"#7f1d1d"};
 export default async function CustomerPage({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{asof?:string}>}){
   const {id}=await params,asof=asOfDate((await searchParams).asof);
   try{
@@ -27,7 +27,7 @@ export default async function CustomerPage({params,searchParams}:{params:Promise
       <section className="card" style={{marginTop:15,padding:0,overflow:"hidden"}}>
         <h2 style={{fontSize:16,margin:0,padding:16}}>Ageing <span className="muted" style={{fontWeight:400}}>(as at {dateLabel(asof)})</span></h2>
         <div style={{overflowX:"auto"}}><table><thead><tr><th>Bucket (days overdue)</th><th className="num">Amount</th><th className="num">% of outstanding</th><th style={{width:"40%"}}></th></tr></thead>
-        <tbody>{buckets.map(([k,v])=>{const pct=p.outstanding>0?v/p.outstanding*100:0;return <tr key={k}><td><span style={{display:"inline-block",width:10,height:10,borderRadius:3,background:bucketColors[k],marginRight:8}}/>{k}</td><td className="num" style={{fontWeight:v>0?650:400,color:v>0?undefined:"#98a2b3"}}>{money(v)}</td><td className="num">{pct.toFixed(1)}%</td><td><div style={{height:8,background:"#eef0f4",borderRadius:99,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:bucketColors[k]}}/></div></td></tr>})}</tbody>
+        <tbody>{buckets.map(([k,v])=>{const pct=p.outstanding>0?v/p.outstanding*100:0;return <tr key={k}><td><span style={{display:"inline-block",width:10,height:10,borderRadius:3,background:bucketColors[k],marginRight:8}}/>{bucketLabel(k)}</td><td className="num" style={{fontWeight:v>0?650:400,color:v>0?undefined:"#98a2b3"}}>{money(v)}</td><td className="num">{pct.toFixed(1)}%</td><td><div style={{height:8,background:"#eef0f4",borderRadius:99,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:bucketColors[k]}}/></div></td></tr>})}</tbody>
         <tfoot><tr><th>Total outstanding</th><th className="num">{money(p.outstanding)}</th><th className="num">{p.outstanding>0?"100.0%":"—"}</th><th></th></tr></tfoot></table></div>
       </section>
       <section className="card" style={{marginTop:15,padding:0,overflow:"hidden"}}>
